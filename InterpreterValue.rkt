@@ -16,6 +16,7 @@
 (define value
   (lambda (expression state)
     (cond
+      ((number? expression) expression)
       ((eq? 'return (operator expression)) (returnValue expression state))
       (else (expressionValue expression state)))))
 
@@ -29,7 +30,6 @@
   (lambda (expression state)
     (cond
       ((null? expression) (error 'parser "parser should have caught this"))
-      ((number? expression) expression)
       ((eq? '+ (operator expression)) (+ (value (leftoperand expression) state) (value (rightoperand expression) state)))
       ((eq? '* (operator expression)) (* (value (leftoperand expression) state) (value (rightoperand expression) state)))
       ((eq? '- (operator expression)) (- (value (leftoperand expression) state) (value (rightoperand expression) state)))

@@ -9,7 +9,7 @@
   (lambda (expression state)
     (cond
       ((null? expression) (error 'parser "parser should have caught this"))
-      ((or (eq? #t expression) (eq? #f expression)) expression)
+      ((or (eq? #t expression) (eq? #f expression)))
       ((eq? '== (operator expression)) (eq? (value (leftoperand expression) state) (value (rightoperand expression) state)))
       ((eq? '!= (operator expression)) (not (eq? (value (leftoperand expression) state) (value (rightoperand expression) state))))
       ((eq? '<= (operator expression)) (or

@@ -12,6 +12,7 @@
 (define rightoperand caddr)
 
 ; Function that finds right function to interpret the value
+(provide value)
 (define value
   (lambda (expression state)
     (cond

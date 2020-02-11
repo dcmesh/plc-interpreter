@@ -1,4 +1,5 @@
 #lang racket
+#lang racket
 
 ;Intro to interpreters
 
@@ -28,6 +29,7 @@
   (lambda (expression state)
     (cond
       ((null? expression) (error 'parser "parser should have caught this"))
+      ((or (eq? #t expression) (eq? #f expression)) expression)
       ((eq? '== (operator expression)) (eq? (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
       ((eq? '!= (operator expression)) (not (eq? (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state))))
       ((eq? '<= (operator expression)) (or

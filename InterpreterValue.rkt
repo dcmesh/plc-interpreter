@@ -17,8 +17,17 @@
   (lambda (expression state)
     (cond
       ((number? expression) expression)
+      ((not (pair? expression)) (variableValue expression state))
       ((eq? 'return (operator expression)) (returnValue expression state))
       (else (expressionValue expression state)))))
+
+; Value of a variable
+(define variableValue
+  (lambda (name state)
+    (cond
+      ((null? state) (error 'unassigned_variable "variable is used before it is assigned"))
+      ((eq? name (caar state)) (cadar state))
+      (else (variableValue name (cdr state))))))
 
 ; Value of a return statement
 (define returnValue

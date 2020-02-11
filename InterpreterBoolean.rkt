@@ -1,5 +1,4 @@
 #lang racket
-#lang racket
 
 ;Intro to interpreters
 
@@ -18,10 +17,14 @@
 
 
 ;To change to prefix/postfix -> swap cadr with car/caddr
+(provide operator)
 (define operator
   (lambda (expression)
     (car expression)))
+
+(provide leftoperand)
 (define leftoperand cadr)
+(provide rightoperand)
 (define rightoperand caddr)
 
 

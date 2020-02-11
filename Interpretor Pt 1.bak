@@ -19,8 +19,8 @@
 ;To change to prefix/postfix -> swap cadr with car/caddr
 (define operator
   (lambda (expression)
-    (car expression)))
-(define leftoperand cadr)
+    (cadr expression)))
+(define leftoperand car)
 (define rightoperand caddr)
 
 
@@ -36,10 +36,8 @@
       ((eq? '>= (operator expression)) (or
                                             (eq? (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state))
                                             (> (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state))))
-      ((eq? '> (operator expression))  (> (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
-      ((eq? '< (operator expression))  (< (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
-      ((eq? '&& (operator expression)) (and (eq? (Mbool (leftoperand expression) state) #t) (eq? (Mbool (rightoperand expression) state) #t)))
-      ((eq? '|| (operator expression)) (or (eq? (Mbool (leftoperand expression) state) #t) (eq? (Mbool (rightoperand expression) state) #t)))
+      ((eq? '> (operator expression)) (> (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
+      ((eq? '< (operator expression)) (< (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
       (else (error 'badop "The operator is not known, or type mismatch")))))
        
 

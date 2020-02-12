@@ -34,7 +34,7 @@
   (lambda (expression state)
     (value leftoperand state)))
 
-;M_value (<value1> + <value2>, state) = M_value(<value1>, state) + M_value(<value2>,
+; expressionValue(<value1> + <value2>, state) = expressionValue(<value1>, state) + expression_value(<value2>, state)
 (define expressionValue
   (lambda (expression state)
     (cond

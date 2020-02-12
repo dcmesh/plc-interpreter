@@ -10,6 +10,10 @@
 (define leftoperand cadr)
 (provide rightoperand)
 (define rightoperand caddr)
+(provide variablenames)
+(define variablenames car)
+(provide variablevalues)
+(define variablevalues cadr)
 
 ; Function that finds right function to interpret the value
 (provide value)
@@ -25,9 +29,9 @@
 (define variableValue
   (lambda (name state)
     (cond
-      ((null? state) (error 'unassigned_variable "variable is used before it is assigned"))
-      ((eq? name (caar state)) (cadar state))
-      (else (variableValue name (cdr state))))))
+      ((null? (variablenames state)) (error 'unassigned_variable "variable is used before it is assigned"))
+      ((eq? name (car (variablenames state))) (car (variablevalues state)))
+      (else (variableValue name (list (cdr (variablenames state)) (cdr (variablevalues state))))))))
 
 ; Value of a return statement
 (define returnValue

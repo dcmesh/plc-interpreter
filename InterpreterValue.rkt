@@ -10,6 +10,7 @@
 (define leftoperand cadr)
 (provide rightoperand)
 (define rightoperand caddr)
+
 (provide variablenames)
 (define variablenames car)
 (provide variablevalues)
@@ -29,8 +30,10 @@
 (define variableValue
   (lambda (name state)
     (cond
-      ((null? (variablenames state)) (error 'unassigned_variable "variable is used before it is assigned"))
-      ((eq? name (car (variablenames state))) (car (variablevalues state)))
+      ((null? (variablenames state)) (error 'unassigned_variable "variable has not been declared"))
+      ((eq? name (car (variablenames state)))
+       (if (eq? (car (variablevalues state)) 'uninitialized) (error 'uninitialized_variable "variable has not been initialized before use")
+           (car (variablevalues state))))
       (else (variableValue name (list (cdr (variablenames state)) (cdr (variablevalues state))))))))
 
 ; Value of a return statement

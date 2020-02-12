@@ -16,6 +16,13 @@
 (provide variablevalues)
 (define variablevalues cadr)
 
+(provide numOperands)
+(define numOperands
+  (lambda (expression)
+    (cond
+      ((null? (cdr expression)) 0)
+      (else (+ 1 (numOperands (cdr expression)))))))
+
 ; Function that finds right function to interpret the value
 (provide value)
 (define value

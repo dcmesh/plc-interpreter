@@ -21,7 +21,8 @@
 
 (define declareState
   (lambda (expression state)
-    (addToState (leftoperand expression) 'uninitialized state)))
+    (if (= (numOperands expression) 2) (addToState (leftoperand expression) (value (rightoperand expression) state) state)
+    (addToState (leftoperand expression) 'uninitialized state))))
 
 (define assignmentState
   (lambda (expression state)

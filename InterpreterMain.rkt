@@ -1,6 +1,7 @@
 #lang racket
 (require "InterpreterState.rkt")
 (require "InterpreterValue.rkt")
+(require "InterpreterUtil.rkt")
 
 (define interpret
   (lambda (program state)

@@ -1,4 +1,5 @@
 #lang racket
+(require "InterpreterUtil.rkt")
 (require "InterpreterValue.rkt")
 
 ; Returns the boolean value as determined by the operator

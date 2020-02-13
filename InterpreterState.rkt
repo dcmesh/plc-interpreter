@@ -1,4 +1,5 @@
 #lang racket
+(require "InterpreterUtil.rkt")
 (require "InterpreterValue.rkt")
 
 (provide updateState)

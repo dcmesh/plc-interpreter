@@ -30,7 +30,6 @@
     (cond
       ((number? expression) expression)
       ((not (pair? expression)) (variableValue expression state))
-      ((eq? 'return (operator expression)) (returnValue expression state))
       (else (expressionValue expression state)))))
 
 ; Value of a variable
@@ -42,11 +41,6 @@
        (if (eq? (car (variablevalues state)) 'uninitialized) (error 'uninitialized_variable "variable has not been initialized before use")
            (car (variablevalues state))))
       (else (variableValue name (list (cdr (variablenames state)) (cdr (variablevalues state))))))))
-
-; Value of a return statement
-(define returnValue
-  (lambda (expression state)
-    (value leftoperand state)))
 
 ; expressionValue(<value1> + <value2>, state) = expressionValue(<value1>, state) + expression_value(<value2>, state)
 (define expressionValue

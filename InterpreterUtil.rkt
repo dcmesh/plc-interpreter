@@ -12,6 +12,13 @@
 (provide rightoperand)
 (define rightoperand caddr)
 
+(provide operand)
+(define operand
+  (lambda (i op)
+    (if (eq? i 0)
+        (car op)
+        (operand (- i 1) (cdr op)))))
+
 (provide variablenames)
 (define variablenames car)
 

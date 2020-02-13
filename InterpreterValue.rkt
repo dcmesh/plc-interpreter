@@ -23,6 +23,7 @@
       (else (variableValue name (list (cdr (variablenames state)) (cdr (variablevalues state))))))))
 
 ; expressionValue(<value1> + <value2>, state) = expressionValue(<value1>, state) + expression_value(<value2>, state)
+; if expression is for comparing booleans, calls expressionBoolean function
 (define expressionValue
   (lambda (expression state)
     (cond
@@ -32,9 +33,9 @@
       ((eq? '- (operator expression)) (- (value (leftoperand expression) state) (value (rightoperand expression) state)))
       ((eq? '/ (operator expression)) (quotient (value (leftoperand expression) state) (value (rightoperand expression) state)))
       ((eq? '% (operator expression)) (modulo (value (leftoperand expression) state) (value (rightoperand expression) state)))
-      (else (error 'bad_operation "The operator is not known")))))
+      (else (expressionBoolean(expression state))))))
 
-; Returns the boolean value as determined by the operator
+; Returns the boolean value as determined by the operator, or error if operator not identified
 (define expressionBoolean
   (lambda (expression state)
     (cond

@@ -2,6 +2,7 @@
 (require "InterpreterUtil.rkt")
 (require "InterpreterValue.rkt")
 
+
 (provide updateState)
 (define updateState
   (lambda (expression state)
@@ -9,6 +10,8 @@
       ((eq? (operator expression) 'return) (returnState expression state))
       ((eq? (operator expression) 'var) (declareState expression state))
       ((eq? (operator expression) '=) (assignmentState expression state))
+      ((eq? (operator expression) 'while) (whileState expression state))
+      ((eq? (operator expression) 'if) (ifState expression state))
       (else (error 'bad_operation "The operator is not known")))))
 
 (define addToState
@@ -46,3 +49,20 @@
   (lambda (expression state)
     (if (not (isDeclared 'return (variablenames state))) (addToState 'return (value (leftoperand expression) state) state)
     (state))))
+
+; State after a while loop
+(define whileState
+  (lambda (expression state)
+      (when (value (leftoperand expression) state)
+          (whileState expression (updateState (rightoperand expression) state)))))
+
+; State after and if statement
+(define ifState
+  (lambda (expression state)
+    (if (eq? (numOperands expression) 3)
+        (if (value (leftoperand expression) state)
+            (updateState (rightoperand expression) state)
+            (updateState (operand 3 expression) state))
+        (when (value (leftoperand expression) state)
+          (updateState (rightoperand expression) state)))))
+    

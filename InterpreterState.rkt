@@ -35,8 +35,10 @@
 
 (define declareState
   (lambda (expression state)
-    (if (= (numOperands expression) 2) (addToState (leftoperand expression) (value (rightoperand expression) state) state)
-    (addToState (leftoperand expression) 'uninitialized state))))
+    (cond
+      ((isDeclared (leftoperand expression) (variablenames state)) (error 'redefined_variable "variable is redefined"))
+      ((= (numOperands expression) 2) (addToState (leftoperand expression) (value (rightoperand expression) state) state))
+      (else(addToState (leftoperand expression) 'uninitialized state)))))
 
 (define assignmentState
   (lambda (expression state)
@@ -53,16 +55,18 @@
 ; State after a while loop
 (define whileState
   (lambda (expression state)
-      (when (value (leftoperand expression) state)
-          (whileState expression (updateState (rightoperand expression) state)))))
+      (if (value (leftoperand expression) state)
+          (whileState expression (updateState (rightoperand expression) state))
+          state)))
 
-; State after and if statement
+; State after an if statement
 (define ifState
   (lambda (expression state)
     (if (eq? (numOperands expression) 3)
         (if (value (leftoperand expression) state)
             (updateState (rightoperand expression) state)
             (updateState (operand 3 expression) state))
-        (when (value (leftoperand expression) state)
-          (updateState (rightoperand expression) state)))))
+        (if (value (leftoperand expression) state)
+          (updateState (rightoperand expression) state)
+          state))))
     

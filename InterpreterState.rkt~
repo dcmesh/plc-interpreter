@@ -1,0 +1,9 @@
+#lang racket
+(require "InterpreterBoolean.rkt")
+
+(define assignmentState
+  (lambda (expression state)
+    (cond
+      ((null? state) '(((leftoperator expression) (rightoperator expression))))
+      ((eq? (leftoperand expression) (car state)) (cons '((leftoperand expression) (rightoperand expression)) (cdr state)))
+      (else (cons (car state) (assignmentState expression (cdr state)))))))

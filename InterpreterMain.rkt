@@ -4,10 +4,14 @@
 (require "InterpreterValue.rkt")
 (require "InterpreterUtil.rkt")
 
+;;; Function to interpret a program contained in a file
+;;; This will call the parser and initialize the state
 (define interpret
   (lambda (file)
     (run (parser file) '(() ()))))
 
+;;; Take a list of statements and the current state
+;;; Will keep evaluating statements until a return is reached in the program
 (define run
   (lambda (program state)
     (cond

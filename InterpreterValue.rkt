@@ -1,7 +1,8 @@
 #lang racket
 (require "InterpreterUtil.rkt")
 
-; Function that finds right function to interpret the value
+;;; Function that finds right function to interpret the value
+;;; Takes an expression and a state and uses the state to evaluate the expression
 (provide value)
 (define value
   (lambda (expression state)
@@ -13,7 +14,8 @@
       ((eq? (num-operands expression) 1) (expr-one-op-val expression state))
       (else (expr-two-op-val expression state)))))
 
-; Value of a variable
+;;; Value of a variable
+;;; The variable must have been initialized previously or the function will result in an error
 (define variable-value
   (lambda (name state)
     (cond
@@ -24,15 +26,17 @@
       (else (variable-value name (list (cdr (var-names state))
                                        (cdr (var-values state))))))))
 
+;;; The value of an operation that has only one operand
+;;; If the expression does not have a numerical variable the result will
+;;; be the expression parsed as a boolean
 (define expr-one-op-val
   (lambda (expression state)
     (cond
       ((null? expression) (error 'parser "parser should have caught this"))
       ((eq? '- (operator expression)) (- (value (left-op expression) state)))
       (else (expr-bool expression state)))))
-      
 
-; expr-two-op-val(<value1> + <value2>, state) = expr-two-op-val(<value1>, state) + expression_value(<value2>, state)
+
 ; if expression is for comparing booleans, calls expr-bool function
 (define expr-two-op-val
   (lambda (expression state)

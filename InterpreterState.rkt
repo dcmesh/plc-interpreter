@@ -1,9 +1,10 @@
 #lang racket
+(provide update-state)
 (require "InterpreterUtil.rkt")
 (require "InterpreterValue.rkt")
 
-
-(provide update-state)
+;;; Takes any expression and the current state and returns and updated state.
+;;; If the expression does not update the state the same state is returned.
 (define update-state
   (lambda (expression state)
     (cond
@@ -12,12 +13,17 @@
       ((eq? (operator expression) '=) (assignment-state expression state))
       ((eq? (operator expression) 'while) (while-state expression state))
       ((eq? (operator expression) 'if) (if-state expression state))
-      (else (error 'bad_operation "The operator is not known")))))
+      (else state))))
 
+;;; Takes a variable name var a value for the variable and the current state
+;;; Returns the state with the addition of inputted variable name and value
 (define add-to-state
   (lambda (var value state)
     (list (cons var (var-names state)) (cons value (var-values state)))))
 
+;;; Takes a variable name var and the current state
+;;; Returns a state that is state without the variable of name var
+;;; If the variable does not exist the state will be returned without changes
 (define remove-from-state
   (lambda (var state)
     (cond
@@ -27,14 +33,8 @@
                           (car (var-values state))
                           (remove-from-state var (list (cdr (var-names state)) (cdr (var-values state)))))))))
 
-(provide is-declared)
-(define is-declared
-  (lambda (name variables)
-    (cond
-      ((null? variables) #f)
-      ((eq? name (car variables)) #t)
-      (else (is-declared name (cdr variables))))))
-
+;;; Takes a declaration expression and a state and returns the resulting state
+;;; This will return an error if the variable has already been declared
 (define declare-state
   (lambda (expression state)
     (cond
@@ -42,8 +42,10 @@
       ((= (num-operands expression) 2) (add-to-state (left-op expression)
                                                      (value (right-op expression) state)
                                                      state))
-      (else(add-to-state (left-op expression) 'uninitialized state)))))
+      (else (add-to-state (left-op expression) 'uninitialized state)))))
 
+;;; Takes an assignment expression and a state and will return the updated state
+;;; There will be an error if the variable in the assignment statement has not been declared yet.
 (define assignment-state
   (lambda (expression state)
     (cond

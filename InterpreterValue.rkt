@@ -17,7 +17,7 @@
 (define variable-value
   (lambda (name state)
     (cond
-      ((null? (var-names state)) (error 'unassigned_variable "variable has not been declared"))
+      ((null? (var-names state)) (error 'undeclared_variable "variable has not been declared"))
       ((eq? name (car (var-names state)))
        (if (eq? (car (var-values state)) 'uninitialized) (error 'uninitialized_variable "variable has not been initialized before use")
            (car (var-values state))))

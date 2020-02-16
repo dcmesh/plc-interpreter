@@ -11,11 +11,12 @@
 (define run
   (lambda (program state)
     (cond
-      ((isDeclared 'return (variablenames state)) (sanitizeReturn (value 'return state)))
+      ((is-declared 'return (var-names state)) (sanitize-return (value 'return state)))
       ((null? program) (error 'no_return "program end reached without a return"))
-      (else (run (cdr program) (updateState (car program) state))))))
+      (else (run (cdr program) (update-state (car program) state))))))
 
-(define sanitizeReturn
+; changes the boolean return from #t and #f to true and false
+(define sanitize-return
   (lambda (expression)
     (cond
       ((eq? expression #t) 'true)

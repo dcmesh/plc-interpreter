@@ -6,12 +6,15 @@
   (lambda (expression)
     (car expression)))
 
-(provide leftoperand)
-(define leftoperand cadr)
+; left-op gets the lefthand expression for some operation
+(provide left-op)
+(define left-op cadr)
 
-(provide rightoperand)
-(define rightoperand caddr)
+; right-op gets the righthand expression for some operation
+(provide right-op)
+(define right-op caddr)
 
+; operand gets the ith expression for some operation
 (provide operand)
 (define operand
   (lambda (i op)
@@ -19,15 +22,16 @@
         (car op)
         (operand (- i 1) (cdr op)))))
 
-(provide variablenames)
-(define variablenames car)
+(provide var-names)
+(define var-names car)
 
-(provide variablevalues)
-(define variablevalues cadr)
+(provide var-values)
+(define var-values cadr)
 
-(provide numOperands)
-(define numOperands
+; num-operands calculates the number of expressions in an operation
+(provide num-operands)
+(define num-operands
   (lambda (expression)
     (cond
       ((null? (cdr expression)) 0)
-      (else (+ 1 (numOperands (cdr expression)))))))
+      (else (+ 1 (num-operands (cdr expression)))))))

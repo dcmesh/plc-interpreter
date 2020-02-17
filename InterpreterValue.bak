@@ -1,11 +1,9 @@
 #lang racket
-(provide value)
-(provide expr-bool)
 (require "InterpreterUtil.rkt")
-;;; Functions for parsing expressions for values or booleans
 
-;; Function that finds right function to interpret the value
-;; Takes an expression and a state and uses the state to evaluate the expression
+;;; Function that finds right function to interpret the value
+;;; Takes an expression and a state and uses the state to evaluate the expression
+(provide value)
 (define value
   (lambda (expression state)
     (cond
@@ -16,22 +14,21 @@
       ((eq? (num-operands expression) 1) (expr-one-op-val expression state))
       (else (expr-two-op-val expression state)))))
 
-;; Value of a variable
-;; The variable must have been initialized previously or the function will result in an error
+;;; Value of a variable
+;;; The variable must have been initialized previously or the function will result in an error
 (define variable-value
   (lambda (name state)
     (cond
-      ((null? (var-names state)) (error 'undeclared_variable "variable has not been declared")) ; Variable is undeclared if var-names is null
+      ((null? (var-names state)) (error 'undeclared_variable "variable has not been declared"))
       ((eq? name (car (var-names state)))
-       (if (eq? (car (var-values state)) 'uninitialized)
-           (error 'uninitialized_variable "variable has not been initialized before use") ; Check if variable has been initialized before reeturning
+       (if (eq? (car (var-values state)) 'uninitialized) (error 'uninitialized_variable "variable has not been initialized before use")
            (car (var-values state))))
       (else (variable-value name (list (cdr (var-names state))
                                        (cdr (var-values state))))))))
 
-;; The value of an operation that has only one operand
-;; If the expression does not have a numerical variable the result will
-;; be the expression parsed as a boolean
+;;; The value of an operation that has only one operand
+;;; If the expression does not have a numerical variable the result will
+;;; be the expression parsed as a boolean
 (define expr-one-op-val
   (lambda (expression state)
     (cond
@@ -40,9 +37,7 @@
       (else (expr-bool expression state)))))
 
 
-;; The value of an operation that has two operands
-;; If the expression does not have a numerical variable the result will
-;; be the expression parsed as a boolean
+; if expression is for comparing booleans, calls expr-bool function
 (define expr-two-op-val
   (lambda (expression state)
     (cond
@@ -54,9 +49,7 @@
       ((eq? '% (operator expression)) (modulo (value (left-op expression) state) (value (right-op expression) state)))
       (else (expr-bool expression state)))))
 
-;; The value of a boolean expression
-;; Returns a boolean, or returns an error if the operator is not known
-;; or if the operator attempts to compare conflicting types. 
+; Returns the boolean value as determined by the operator, or error if operator not identified
 (define expr-bool
   (lambda (expression state)
     (cond

@@ -72,11 +72,7 @@
 ; State after an if statement
 (define if-state
   (lambda (expression state)
-    (if (eq? (num-operands expression) 3)
-        (if (value (left-op expression) state)
-            (update-state (right-op expression) state)
-            (update-state (operand 3 expression) state))
-        (if (value (left-op expression) state)
-          (update-state (right-op expression) state)
-          state))))
-    
+    (cond
+      ((value (left-op expression) state) (update-state (right-op expression) state))
+      ((eq? (num-operands expression) 3) (update-state (operand 3 expression) state))
+      (else state))))

@@ -3,8 +3,11 @@
 (require "InterpreterState.rkt")
 (require "InterpreterValue.rkt")
 (require "InterpreterUtil.rkt")
+
+;;;----------------------------------------------------------------------------------
 ;;; Interpreter Assignment 1 for EECS 345
 ;;; Group 30: David Meshnick (dcm101), Austin Keppers (agk51), Trey Starshak (mjs386)
+;;;----------------------------------------------------------------------------------
 
 ;; Function to interpret a program contained in a file
 ;; This will call the parser and initialize the state

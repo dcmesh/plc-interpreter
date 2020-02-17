@@ -2,7 +2,10 @@
 (provide update-state)
 (require "InterpreterUtil.rkt")
 (require "InterpreterValue.rkt")
+
+;;;---------------------------------------------------------
 ;;; Functions that take a state and return an updated state
+;;;---------------------------------------------------------
 
 ;; Takes any expression and the current state and returns and updated state.
 ;; If the expression does not update the state the same state is returned.
@@ -64,14 +67,18 @@
                                                                     state)
     (state))))
 
-;; State after a while expression
+;; Takes an expression and a state, and if the left operand of the expression is true,
+;; and recurse on the updated state after the right operand has been evaluated
 (define while-state
   (lambda (expression state)
       (if (expr-bool (left-op expression) state)
           (while-state expression (update-state (right-op expression) state))
           state)))
 
-;; State after an if expression
+;; Takes an expression and a state, and if the left operand evaluates as true,
+;; evaluate the right operand and update the state accordingly. If the left operand
+;; was false and there is a third operand (else), evalute the third operand and update
+;; the state accordingly. Otherwise, return the state
 (define if-state
   (lambda (expression state)
     (cond

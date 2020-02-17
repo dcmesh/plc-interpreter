@@ -19,7 +19,7 @@
       ((null? program) (error 'no_return "program end reached without a return"))
       (else (run (cdr program) (update-state (car program) state))))))
 
-;; changes the boolean return from #t and #f to true and false
+;; Changes the boolean return from #t and #f to true and false
 (define sanitize-return
   (lambda (expression)
     (cond

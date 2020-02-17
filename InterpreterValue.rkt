@@ -37,7 +37,7 @@
       (else (expr-bool expression state)))))
 
 
-;; if expression is for comparing booleans, calls expr-bool function
+;; If expression is for comparing booleans, calls expr-bool function
 (define expr-two-op-val
   (lambda (expression state)
     (cond

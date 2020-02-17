@@ -1,9 +1,9 @@
 #lang racket
+(provide value)
 (require "InterpreterUtil.rkt")
 
-;;; Function that finds right function to interpret the value
-;;; Takes an expression and a state and uses the state to evaluate the expression
-(provide value)
+;; Function that finds right function to interpret the value
+;; Takes an expression and a state and uses the state to evaluate the expression
 (define value
   (lambda (expression state)
     (cond
@@ -14,8 +14,8 @@
       ((eq? (num-operands expression) 1) (expr-one-op-val expression state))
       (else (expr-two-op-val expression state)))))
 
-;;; Value of a variable
-;;; The variable must have been initialized previously or the function will result in an error
+;; Value of a variable
+;; The variable must have been initialized previously or the function will result in an error
 (define variable-value
   (lambda (name state)
     (cond
@@ -26,9 +26,9 @@
       (else (variable-value name (list (cdr (var-names state))
                                        (cdr (var-values state))))))))
 
-;;; The value of an operation that has only one operand
-;;; If the expression does not have a numerical variable the result will
-;;; be the expression parsed as a boolean
+;; The value of an operation that has only one operand
+;; If the expression does not have a numerical variable the result will
+;; be the expression parsed as a boolean
 (define expr-one-op-val
   (lambda (expression state)
     (cond
@@ -37,7 +37,7 @@
       (else (expr-bool expression state)))))
 
 
-; if expression is for comparing booleans, calls expr-bool function
+;; if expression is for comparing booleans, calls expr-bool function
 (define expr-two-op-val
   (lambda (expression state)
     (cond
@@ -49,7 +49,7 @@
       ((eq? '% (operator expression)) (modulo (value (left-op expression) state) (value (right-op expression) state)))
       (else (expr-bool expression state)))))
 
-; Returns the boolean value as determined by the operator, or error if operator not identified
+;; Returns the boolean value as determined by the operator, or error if operator not identified
 (define expr-bool
   (lambda (expression state)
     (cond

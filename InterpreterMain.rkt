@@ -4,18 +4,23 @@
 (require "InterpreterValue.rkt")
 (require "InterpreterUtil.rkt")
 
+;;; Function to interpret a program contained in a file
+;;; This will call the parser and initialize the state
 (define interpret
   (lambda (file)
     (run (parser file) '(() ()))))
 
+;;; Take a list of statements and the current state
+;;; Will keep evaluating statements until a return is reached in the program
 (define run
   (lambda (program state)
     (cond
-      ((isDeclared 'return (variablenames state)) (sanitizeReturn (value 'return state)))
+      ((is-declared 'return (var-names state)) (sanitize-return (value 'return state)))
       ((null? program) (error 'no_return "program end reached without a return"))
-      (else (run (cdr program) (updateState (car program) state))))))
+      (else (run (cdr program) (update-state (car program) state))))))
 
-(define sanitizeReturn
+; changes the boolean return from #t and #f to true and false
+(define sanitize-return
   (lambda (expression)
     (cond
       ((eq? expression #t) 'true)

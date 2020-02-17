@@ -23,8 +23,8 @@
 
 ;; Changes the boolean return from #t and #f to true and false
 (define sanitize-return
-  (lambda (expression)
+  (lambda (return-value)
     (cond
-      ((eq? expression #t) 'true)
-      ((eq? expression #f) 'false)
-      (else expression))))
+      ((eq? return-value #t) 'true)
+      ((eq? return-value #f) 'false)
+      (else return-value))))

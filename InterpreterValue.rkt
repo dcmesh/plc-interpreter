@@ -21,9 +21,10 @@
 (define variable-value
   (lambda (name state)
     (cond
-      ((null? (var-names state)) (error 'undeclared_variable "variable has not been declared"))
+      ((null? (var-names state)) (error 'undeclared_variable "variable has not been declared")) ; Variable is undeclared if var-names is null
       ((eq? name (car (var-names state)))
-       (if (eq? (car (var-values state)) 'uninitialized) (error 'uninitialized_variable "variable has not been initialized before use")
+       (if (eq? (car (var-values state)) 'uninitialized)
+           (error 'uninitialized_variable "variable has not been initialized before use") ; Check if variable has been initialized before reeturning
            (car (var-values state))))
       (else (variable-value name (list (cdr (var-names state))
                                        (cdr (var-values state))))))))

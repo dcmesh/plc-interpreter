@@ -55,7 +55,8 @@
                                                                           (remove-from-state (left-op expression) state)))
       (else (error 'undeclared_variable "Variable used before declared")))))
 
-;; State after a return value
+;; State after a return expression
+;; Adds the result of the return to the state if there is not already a return
 (define return-state
   (lambda (expression state)
     (if (not (is-declared 'return (var-names state))) (add-to-state 'return
@@ -63,14 +64,14 @@
                                                                     state)
     (state))))
 
-;; State after a while loop
+;; State after a while expression
 (define while-state
   (lambda (expression state)
       (if (expr-bool (left-op expression) state)
           (while-state expression (update-state (right-op expression) state))
           state)))
 
-;; State after an if statement
+;; State after an if expression
 (define if-state
   (lambda (expression state)
     (cond

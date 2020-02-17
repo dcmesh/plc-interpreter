@@ -40,7 +40,7 @@
         (car op)
         (operand (- i 1) (cdr op)))))
 
-;; num-operands calculates the number of expressions in an operation
+;; num-operands calculates the number of operands in an expression
 (define num-operands
   (lambda (expression)
     (cond

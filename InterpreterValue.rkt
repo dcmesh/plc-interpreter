@@ -1,6 +1,8 @@
 #lang racket
 (provide value)
+(provide expr-bool)
 (require "InterpreterUtil.rkt")
+;;; Functions for parsing expressions for values or booleans
 
 ;; Function that finds right function to interpret the value
 ;; Takes an expression and a state and uses the state to evaluate the expression

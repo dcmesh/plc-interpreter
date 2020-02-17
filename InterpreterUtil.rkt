@@ -8,6 +8,9 @@
 (provide init-state)
 (provide num-operands)
 (provide is-declared)
+;;; Utility functions that will be needed in many files
+;;; This includes functions used for abstraction and
+;;; frequently need functions to alter the state
 
 ;; Takes a state and returns the list of variable names
 (define var-names car)

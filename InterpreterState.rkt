@@ -21,21 +21,22 @@
 
 ;; Takes a variable name var a value for the variable and the current state
 ;; Returns the state with the addition of inputted variable name and value
-(define add-to-state
+(define add-variable
   (lambda (var value state)
-    (list (cons var (var-names state)) (cons value (var-values state)))))
+    (cons (list (cons var (var-names state)) (cons value (var-values state))) (remove-state-layer state))))
 
 ;; Takes a variable name var and the current state
 ;; Returns a state that is state without the variable of name var
 ;; If the variable does not exist the state will be returned without changes
-(define remove-from-state
+(define remove-variable
   (lambda (var state)
     (cond
-      ((null? (var-names state)) state)
-      ((eq? var (car (var-names state))) (list (cdr (var-names state)) (cdr (var-values state))))
-      (else (add-to-state (car (var-names state))
+      ((null? state) state)
+      ((null? (var-names state)) (push-state-layer (state-top-layer state) (remove-variable var (remove-state-layer state))))
+      ((eq? var (car (var-names state))) (push-state-layer (list (cdr (var-names state)) (cdr (var-values state))) (remove-state-layer state)))
+      (else (add-variable (car (var-names state))
                           (car (var-values state))
-                          (remove-from-state var (list (cdr (var-names state)) (cdr (var-values state)))))))))
+                          (remove-variable var (pop-state-value state)))))))
 
 ;; Takes a declaration expression and a state and returns the resulting state
 ;; This will return an error if the variable has already been declared
@@ -43,26 +44,27 @@
   (lambda (expression state)
     (cond
       ((is-declared (left-op expression) (var-names state)) (error 'redefined_variable "variable is redefined"))
-      ((= (num-operands expression) 2) (add-to-state (left-op expression)
+      ((= (num-operands expression) 2) (add-variable (left-op expression)
                                                      (value (right-op expression) state)
                                                      state))
-      (else (add-to-state (left-op expression) 'uninitialized state)))))
+      (else (add-variable (left-op expression) 'uninitialized state)))))
 
 ;; Takes an assignment expression and a state and will return the updated state
 ;; There will be an error if the variable in the assignment statement has not been declared yet.
 (define assignment-state
   (lambda (expression state)
     (cond
-      ((is-declared (left-op expression) (var-names state)) (add-to-state (left-op expression)
+      ((null? state) (error 'undeclared_variable "Variable used before declared")) 
+      ((is-declared (left-op expression) (var-names state)) (add-variable (left-op expression)
                                                                           (value (right-op expression) state)
-                                                                          (remove-from-state (left-op expression) state)))
-      (else (error 'undeclared_variable "Variable used before declared")))))
+                                                                          (remove-variable (left-op expression) state)))
+      (else (push-state-layer (state-top-layer state) (assignment-state expression (remove-state-layer state)))))))
 
 ;; State after a return expression
 ;; Adds the result of the return to the state if there is not already a return
 (define return-state
   (lambda (expression state)
-    (if (not (is-declared 'return (var-names state))) (add-to-state 'return
+    (if (not (is-declared 'return (var-names state))) (add-variable 'return
                                                                     (value (left-op expression) state)
                                                                     state)
     (state))))

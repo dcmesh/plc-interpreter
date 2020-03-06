@@ -24,13 +24,13 @@
 (define variable-value
   (lambda (name state)
     (cond
-      ((null? (var-names state)) (error 'undeclared_variable "variable has not been declared")) ; Variable is undeclared if var-names is null
+      ((null? state) (error 'undeclared_variable "variable has not been declared")) ; Variable is undeclared if var-names is null
+      ((null? (var-names state)) (variable-value name (remove-state-layer state)))
       ((eq? name (car (var-names state)))
        (if (eq? (car (var-values state)) 'uninitialized)
            (error 'uninitialized_variable "variable has not been initialized before use") ; Check if variable has been initialized before reeturning
            (car (var-values state))))
-      (else (variable-value name (list (cdr (var-names state))
-                                       (cdr (var-values state))))))))
+      (else (variable-value name (pop-state-value state))))))
 
 ;; The value of an operation that has only one operand
 ;; If the expression does not have a numerical variable the result will

@@ -1,6 +1,10 @@
 #lang racket
 (provide var-names)
 (provide var-values)
+(provide push-state-layer)
+(provide remove-state-layer)
+(provide pop-state-value)
+(provide state-top-layer)
 (provide operator)
 (provide left-op)
 (provide right-op)
@@ -15,12 +19,34 @@
 ;;; frequently need functions to alter the state
 ;;;---------------------------------------------------------
 
-;; Takes a state and returns the list of variable names
-(define var-names car)
+;; Takes a state and returns the list of variable names in the top layer
+(define var-names caar)
 
-;; Takes a state and returns a list of variable values
+;; Takes a state and returns a list of variable values in the top layer
 ;; The ith name in var-names should correspond with the ith value in var-values
-(define var-values cadr)
+(define var-values cadar)
+
+;; Takes a state layer and the state
+;; Returns a state with the new layer at the front
+(define push-state-layer
+  (lambda (layer state)
+    (cons layer state)))
+
+;; Removes a layer from the front of the state
+(define remove-state-layer
+  (lambda (state)
+    (cdr state)))
+
+;; Removes the top most value of the state
+(define pop-state-value
+  (lambda (state)
+    (cons (list (cdr (var-names state)) (cdr (var-values state))) (remove-state-layer state))))
+
+
+;; Return the top most layer of the state
+(define state-top-layer
+  (lambda (state)
+    (car state)))
 
 ;; To change to prefix/postfix -> swap cadr with car/caddr
 (define operator
@@ -34,7 +60,7 @@
 (define right-op caddr)
 
 ;; the state that should be used when starting a program
-(define init-state '(() ()))
+(define init-state '((() ())))
 
 ;; operand gets the ith expression for some operation
 (define operand

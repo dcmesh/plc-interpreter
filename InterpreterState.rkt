@@ -25,18 +25,17 @@
   (lambda (var value state)
     (cons (list (cons var (var-names state)) (cons (box value) (var-values state))) (remove-state-layer state))))
 
-;; Takes a variable name var and the current state
-;; Returns a state that is state without the variable of name var
-;; If the variable does not exist the state will be returned without changes
-(define remove-variable
-  (lambda (var state)
+;; Takes a variable name var, an update value, and the current state
+;; Returns a state that is state with the value of the variable with name var updated to value
+(define set-variable
+  (lambda (var value state)
     (cond
       ((null? state) state)
-      ((null? (var-names state)) (push-state-layer (state-top-layer state) (remove-variable var (remove-state-layer state))))
-      ((eq? var (car (var-names state))) (push-state-layer (list (cdr (var-names state)) (cdr (var-values state))) (remove-state-layer state)))
+      ((null? (var-names state)) (push-state-layer (state-top-layer state) (set-variable var (remove-state-layer state))))
+      ((eq? var (car (var-names state))) (begin (set-box! (car (var-values state)) value) state))
       (else (add-variable (car (var-names state))
                           (car (var-values state))
-                          (remove-variable var (pop-state-value state)))))))
+                          (set-variable var value (pop-state-value state)))))))
 
 ;; Takes a declaration expression and a state and returns the resulting state
 ;; This will return an error if the variable has already been declared
@@ -55,9 +54,9 @@
   (lambda (expression state)
     (cond
       ((null? state) (error 'undeclared_variable "Variable used before declared")) 
-      ((is-declared (left-op expression) (var-names state)) (add-variable (left-op expression)
+      ((is-declared (left-op expression) (var-names state)) (set-variable (left-op expression)
                                                                           (value (right-op expression) state)
-                                                                          (remove-variable (left-op expression) state)))
+                                                                          state))
       (else (push-state-layer (state-top-layer state) (assignment-state expression (remove-state-layer state)))))))
 
 ;; State after a return expression

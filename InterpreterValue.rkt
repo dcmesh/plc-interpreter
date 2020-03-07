@@ -27,9 +27,9 @@
       ((null? state) (error 'undeclared_variable "variable has not been declared")) ; Variable is undeclared if var-names is null
       ((null? (var-names state)) (variable-value name (remove-state-layer state)))
       ((eq? name (car (var-names state)))
-       (if (eq? (car (var-values state)) 'uninitialized)
+       (if (eq? (unbox (car (var-values state))) 'uninitialized)
            (error 'uninitialized_variable "variable has not been initialized before use") ; Check if variable has been initialized before reeturning
-           (car (var-values state))))
+           (unbox (car (var-values state)))))
       (else (variable-value name (pop-state-value state))))))
 
 ;; The value of an operation that has only one operand

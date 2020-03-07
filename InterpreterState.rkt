@@ -23,7 +23,7 @@
 ;; Returns the state with the addition of inputted variable name and value
 (define add-variable
   (lambda (var value state)
-    (cons (list (cons var (var-names state)) (cons value (var-values state))) (remove-state-layer state))))
+    (cons (list (cons var (var-names state)) (cons (box value) (var-values state))) (remove-state-layer state))))
 
 ;; Takes a variable name var and the current state
 ;; Returns a state that is state without the variable of name var

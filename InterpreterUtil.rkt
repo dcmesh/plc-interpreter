@@ -12,6 +12,12 @@
 (provide init-state)
 (provide num-operands)
 (provide is-declared)
+(provide is-atom)
+(provide validate-body)
+(provide validate-catch-body)
+(provide validate-finally-body)
+(provide get-error)
+
 
 ;;;---------------------------------------------------------
 ;;; Utility functions that will be needed in many files
@@ -19,12 +25,15 @@
 ;;; frequently need functions to alter the state
 ;;;---------------------------------------------------------
 
+
 ;; Takes a state and returns the list of variable names in the top layer
 (define var-names caar)
+
 
 ;; Takes a state and returns a list of variable values in the top layer
 ;; The ith name in var-names should correspond with the ith value in var-values
 (define var-values cadar)
+
 
 ;; Takes a state layer and the state
 ;; Returns a state with the new layer at the front
@@ -32,10 +41,12 @@
   (lambda (layer state)
     (cons layer state)))
 
+
 ;; Removes a layer from the front of the state
 (define remove-state-layer
   (lambda (state)
     (cdr state)))
+
 
 ;; Removes the top most value of the state
 (define pop-state-value
@@ -48,19 +59,24 @@
   (lambda (state)
     (car state)))
 
+
 ;; To change to prefix/postfix -> swap cadr with car/caddr
 (define operator
   (lambda (expression)
     (car expression)))
 
+
 ;; left-op gets the lefthand expression for some operation
 (define left-op cadr)
+
 
 ;; right-op gets the righthand expression for some operation
 (define right-op caddr)
 
+
 ;; the state that should be used when starting a program
 (define init-state '((() ())))
+
 
 ;; operand gets the ith expression for some operation
 (define operand
@@ -69,12 +85,14 @@
         (car op)
         (operand (- i 1) (cdr op)))))
 
+
 ;; num-operands calculates the number of operands in an expression
 (define num-operands
   (lambda (expression)
     (cond
       ((null? (cdr expression)) 0)
       (else (+ 1 (num-operands (cdr expression)))))))
+
 
 ;; Takes a variable name and a list of variable names
 ;; Returns true if the variable has previously been declared and false otherwise.
@@ -84,3 +102,31 @@
       ((null? variables) #f)
       ((eq? name (car variables)) #t)
       (else (is-declared name (cdr variables))))))
+
+
+;; Determines whether the expression is a non-null atom
+(define is-atom
+  (lambda (expression)
+    (and (not (pair? expression)) (not (null? expression)))))
+
+
+;; Validates the existance of an expression's body 
+(define validate-body cadr)
+
+
+;; Validates the existance of an expression's catch body
+(define validate-catch-body
+  (lambda (expression)
+    (cdr (cdaddr expression))))
+
+
+;; Validates the existance of an expression's finally body
+(define validate-finally-body
+  (lambda (expression)
+    (validate-body (cadddr expression))))
+
+
+;; Gets the type of error being caught
+(define get-error
+  (lambda (expression)
+    (caar (cdaddr expression))))

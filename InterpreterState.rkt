@@ -96,9 +96,10 @@
     (if (value (left-op expression) state)
         (call/cc
          (lambda (new-continue)
-           (update-state (right-op expression) state
+           (while-state (update-state (right-op expression) state
                          break new-continue
-                         return throw)))
+                         return throw)
+           state break continue return throw)))
         state)))
 
 ;; Takes an expression and a state, and if the left operand evaluates as true,

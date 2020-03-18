@@ -16,7 +16,7 @@
     (cond
       ((null? expression) state)
       ((is-atom expression) state)
-      ((eq? (operator expression) 'return) (return-state expression state break continue return throw))
+      ((eq? (operator expression) 'return) (return (value (left-op expression) state)))
       ((eq? (operator expression) 'var) (declare-state expression state break continue return throw))
       ((eq? (operator expression) '=) (assignment-state expression state break continue return throw))
       ((eq? (operator expression) 'while) (call/cc (lambda (new-break) while-state expression state new-break continue return throw)))
@@ -25,7 +25,7 @@
       ((eq? (operator expression) 'throw) (throw (right-op expression) state))
       ((eq? (operator expression) 'break) (break state))
       ((eq? (operator expression) 'continue) (continue state))
-      (else state))))
+      (else (error "Unexpected expression")))))
 
 
 ;; Takes a variable name var a value for the variable and the current state
@@ -62,8 +62,7 @@
       ((= (num-operands expression) 2) (add-variable (left-op expression)
                                                      (value (right-op expression) state)
                                                      state))
-      (else (add-variable (left-op expression) 'uninitialized (update-state
-                                                               (right-op expression) state break continue return throw))))))
+      (else (add-variable (left-op expression) 'uninitialized state)))))
 
 
 ;; Takes an assignment expression and a state and will return the updated state
@@ -77,17 +76,6 @@
                                                                           state))
       (else (push-state-layer (state-top-layer state)
                               (assignment-state expression (remove-state-layer state) break continue return throw))))))
-
-
-;; State after a return expression
-;; Adds the result of the return to the state if there is not already a return
-(define return-state
-  (lambda (expression state break continue return throw)
-    (if (not (is-declared 'return (var-names state))) (add-variable 'return
-                                                                    (value (left-op expression) state)
-                                                                    state)
-    (state))))
-
 
 ;; Takes an expression and a state, and if the left operand of the expression is true,
 ;; and recurse on the updated state after the right operand has been evaluated

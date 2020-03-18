@@ -18,12 +18,18 @@
     (sanitize-return
      (call/cc
       (lambda (return)
-        (update-state (parser file)
-                      (init-state)
-                      (lambda (v) (error "Error: Invalid break encountered."))
-                      (lambda (v) ("Error: Invalid continue encountered."))
-                      return
-                      (lambda (v s) (error "Error: Unexpected problem encountered." s)))))))) 
+        (run (parser file)
+             init-state
+             (lambda (v) (error "Error: Invalid break encountered."))
+             (lambda (v) ("Error: Invalid continue encountered."))
+             return
+             (lambda (v s) (error "Error: Unexpected problem encountered." s))))))))
+
+(define run
+  (lambda (program state break continue return throw)
+    (cond
+      ((null? program) (error "Error: no return encountered"))
+      (else (run (cdr program) (update-state (car program) state break continue return throw) break continue return throw)))))
 
 
 ;; Changes the boolean return from #t and #f to true and false

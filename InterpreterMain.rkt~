@@ -4,25 +4,27 @@
 (require "InterpreterValue.rkt")
 (require "InterpreterUtil.rkt")
 
+
 ;;;----------------------------------------------------------------------------------
 ;;; Interpreter Assignment 1 for EECS 345
 ;;; Group 30: David Meshnick (dcm101), Austin Keppers (agk51), Trey Starshak (mjs386)
 ;;;----------------------------------------------------------------------------------
 
+
 ;; Function to interpret a program contained in a file
 ;; This will call the parser and initialize the state
 (define interpret
   (lambda (file)
-    (run (parser file) init-state)))
+    (sanitize-return
+     (call/cc
+      (lambda (return)
+        (update-state (parser file)
+                      (init-state)
+                      (lambda (v) (error "Error: Invalid break encountered."))
+                      (lambda (v) ("Error: Invalid continue encountered."))
+                      return
+                      (lambda (v s) (error "Error: Unexpected problem encountered." s)))))))) 
 
-;; Take a list of statements and the current state
-;; Will keep evaluating statements until a return is reached in the program
-(define run
-  (lambda (program state)
-    (cond
-      ((is-declared 'return (var-names state)) (sanitize-return (value 'return state)))
-      ((null? program) (error 'no_return "program end reached without a return"))
-      (else (run (cdr program) (update-state (car program) state))))))
 
 ;; Changes the boolean return from #t and #f to true and false
 (define sanitize-return
@@ -30,4 +32,6 @@
     (cond
       ((eq? return-value #t) 'true)
       ((eq? return-value #f) 'false)
+      ((eq? return-value 'undeclared) (error "Error: undeclared variable encountered."))
+      ((eq? return-value 'uninitialized) (error "Error: uninitialized variable encountered."))
       (else return-value))))

@@ -93,9 +93,18 @@
 ;; and recurse on the updated state after the right operand has been evaluated
 (define while-state
   (lambda (expression state break continue return throw)
-      (if (value (left-op expression) state)
-          (while-state expression (update-state (right-op expression) state break continue return throw))
-          state)))
+    (call/cc
+     (lambda (new-break)
+       (letrec
+           ((loop (lambda (condition body state)
+                    (if (value condition state)
+                        (loop condition body
+                                         (call/cc
+                                          (lambda (new-continue)
+                                            (update-state body state
+                                                          new-break new-continue
+                                                          return throw)))) state))))
+            (loop (left-op expression) (right-op expression) state))))))
 
 
 ;; Takes an expression and a state, and if the left operand evaluates as true,

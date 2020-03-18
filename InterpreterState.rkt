@@ -88,13 +88,12 @@
 (define while-state
   (lambda (expression state break continue return throw)
     (if (value (left-op expression) state)
-        (call/cc
-         (lambda (new-continue)
-           (while-state expression
-            (update-state (right-op expression) state
-                          break new-continue
-                          return throw)
-           break continue return throw)))
+        (while-state expression
+                     (call/cc (lambda (new-continue)
+                                (update-state (right-op expression) state
+                                              break new-continue
+                                              return throw)))
+                     break continue return throw)
         state)))
 
 ;; Takes an expression and a state, and if the left operand evaluates as true,

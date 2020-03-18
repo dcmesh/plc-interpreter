@@ -4,6 +4,7 @@
 (provide push-state-layer)
 (provide remove-state-layer)
 (provide pop-state-value)
+(provide push-state-value)
 (provide state-top-layer)
 (provide operator)
 (provide left-op)
@@ -53,6 +54,14 @@
 (define pop-state-value
   (lambda (state)
     (cons (list (cdr (var-names state)) (cdr (var-values state))) (remove-state-layer state))))
+
+;; Takes a variable name var a value for the variable and the current state
+;; Returns the state with the addition of inputted variable name and value
+(define push-state-value
+  (lambda (var value state)
+    (cons (list (cons var (var-names state))
+                (cons value (var-values state)))
+          (remove-state-layer state))))
 
 
 ;; Return the top most layer of the state

@@ -38,6 +38,7 @@
           (remove-state-layer state))))
 
 
+
 ;; Takes a variable name var, an update value, and the current state
 ;; Returns a state that is state with the value of the variable with name var updated to value
 (define set-variable
@@ -49,9 +50,9 @@
                                   (set-variable var (remove-state-layer state))))
       ((eq? var (car (var-names state))) (begin
                                            (set-box! (car (var-values state)) value) state))
-      (else (add-variable (car (var-names state))
-                          (car (var-values state))
-                          (set-variable var value (pop-state-value state)))))))
+      (else (push-state-value (car (var-names state))
+                              (car (var-values state))
+                              (set-variable var value (pop-state-value state)))))))
 
 
 ;; Takes a declaration expression and a state and returns the resulting state

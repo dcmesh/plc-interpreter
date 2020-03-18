@@ -10,6 +10,7 @@
 (provide right-op)
 (provide operand)
 (provide init-state)
+(provide init-layer)
 (provide num-operands)
 (provide is-declared)
 (provide is-atom)
@@ -77,6 +78,7 @@
 ;; the state that should be used when starting a program
 (define init-state '((() ())))
 
+(define init-layer '(() ()))
 
 ;; operand gets the ith expression for some operation
 (define operand

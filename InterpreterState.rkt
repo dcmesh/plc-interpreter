@@ -19,13 +19,13 @@
       ((eq? (operator expression) 'return) (return (value (left-op expression) state)))
       ((eq? (operator expression) 'var) (declare-state expression state break continue return throw))
       ((eq? (operator expression) '=) (assignment-state expression state break continue return throw))
-      ((eq? (operator expression) 'while) (call/cc (lambda (new-break) while-state expression state new-break continue return throw)))
+      ((eq? (operator expression) 'while) (call/cc (lambda (new-break) (while-state expression state new-break continue return throw))))
       ((eq? (operator expression) 'if) (if-state expression state break continue return throw))
       ((eq? (operator expression) 'try) (try-state expression state break continue return throw))
       ((eq? (operator expression) 'throw) (throw (right-op expression) state))
       ((eq? (operator expression) 'break) (break state))
       ((eq? (operator expression) 'continue) (continue state))
-      ((eq? (operator expression) 'begin) (block-state expression (push-state-layer (state-top-layer state) init-state) break continue return throw))
+      ((eq? (operator expression) 'begin) (block-state expression (push-state-layer init-layer state) break continue return throw))
       (else (error "Unexpected expression")))))
 
 
@@ -70,13 +70,17 @@
 ;; There will be an error if the variable in the assignment statement has not been declared yet.
 (define assignment-state
   (lambda (expression state break continue return throw)
+    (assignment-state-helper expression state state break continue return throw)))
+
+(define assignment-state-helper
+  (lambda (expression current-state full-state break continue return throw)
     (cond
-      ((null? state) (error 'undeclared_variable "Variable used before declared")) 
-      ((is-declared (left-op expression) (var-names state)) (set-variable (left-op expression)
-                                                                          (value (right-op expression) state)
-                                                                          state))
-      (else (push-state-layer (state-top-layer state)
-                              (assignment-state expression (remove-state-layer state) break continue return throw))))))
+      ((null? current-state) (error 'undeclared_variable "Variable used before declared")) 
+      ((is-declared (left-op expression) (var-names current-state)) (set-variable (left-op expression)
+                                                                                  (value (right-op expression) full-state)
+                                                                                  current-state))
+      (else (push-state-layer (state-top-layer current-state)
+                              (assignment-state-helper expression (remove-state-layer current-state) full-state break continue return throw))))))
 
 ;; Takes an expression and a state, and if the left operand of the expression is true,
 ;; and recurse on the updated state after the right operand has been evaluated
@@ -85,10 +89,11 @@
     (if (value (left-op expression) state)
         (call/cc
          (lambda (new-continue)
-           (while-state (update-state (right-op expression) state
-                         break new-continue
-                         return throw)
-           state break continue return throw)))
+           (while-state expression
+            (update-state (right-op expression) state
+                          break new-continue
+                          return throw)
+           break continue return throw)))
         state)))
 
 ;; Takes an expression and a state, and if the left operand evaluates as true,

@@ -19,13 +19,18 @@
       ((eq? (operator expression) 'return) (return (value (left-op expression) state)))
       ((eq? (operator expression) 'var) (declare-state expression state break continue return throw))
       ((eq? (operator expression) '=) (assignment-state expression state break continue return throw))
-      ((eq? (operator expression) 'while) (call/cc (lambda (new-break) (while-state expression state new-break continue return throw))))
+      ((eq? (operator expression) 'while) (call/cc
+                                           (lambda (new-break)
+                                             (while-state expression state new-break continue return throw))))
       ((eq? (operator expression) 'if) (if-state expression state break continue return throw))
       ((eq? (operator expression) 'try) (try-state expression state break continue return throw))
       ((eq? (operator expression) 'throw) (throw (right-op expression) state))
       ((eq? (operator expression) 'break) (break state))
       ((eq? (operator expression) 'continue) (continue state))
-      ((eq? (operator expression) 'begin) (block-state (cdr expression) (push-state-layer init-layer state) break continue return throw))
+      ((eq? (operator expression) 'begin) (block-state
+                                           (cdr expression)
+                                           (push-state-layer init-layer state)
+                                           break continue return throw))
       (else (error "Unexpected expression")))))
 
 
@@ -38,7 +43,6 @@
           (remove-state-layer state))))
 
 
-
 ;; Takes a variable name var, an update value, and the current state
 ;; Returns a state that is state with the value of the variable with name var updated to value
 (define set-variable
@@ -49,7 +53,8 @@
                                   (state-top-layer state)
                                   (set-variable var (remove-state-layer state))))
       ((eq? var (car (var-names state))) (begin
-                                           (set-box! (car (var-values state)) value) state))
+                                           (set-box! (car
+                                                      (var-values state)) value) state))
       (else (push-state-value (car (var-names state))
                               (car (var-values state))
                               (set-variable var value (pop-state-value state)))))))
@@ -81,7 +86,8 @@
                                                                                   (value (right-op expression) full-state)
                                                                                   current-state))
       (else (push-state-layer (state-top-layer current-state)
-                              (assignment-state-helper expression (remove-state-layer current-state) full-state break continue return throw))))))
+                              (assignment-state-helper expression (remove-state-layer current-state)
+                                                       full-state break continue return throw))))))
 
 ;; Takes an expression and a state, and if the left operand of the expression is true,
 ;; and recurse on the updated state after the right operand has been evaluated
@@ -103,26 +109,87 @@
 (define if-state
   (lambda (expression state break continue return throw)
     (cond
-      ((value (left-op expression) state) (update-state (right-op expression) state break continue return throw))
-      ((eq? (num-operands expression) 3) (update-state (operand 3 expression) state break continue return throw))
+      ((value (left-op expression) state) (update-state (right-op expression)
+                                                        state break continue
+                                                        return throw))
+      ((eq? (num-operands expression) 3) (update-state (operand 3 expression)
+                                                       state break continue
+                                                       return throw))
       (else state))))
 
 
-;; Checks to see what components are in try-catch-finally section,
-;; and updates state on the blocks accordingly
+;; Takes expression, state, and continuations for a try block, then adjusts continuations as needed. To do so,
+;; a throw continuation is made, along with a try-catch-finally sequence, which is then evaluated.
 (define try-state
   (lambda (expression state break continue return throw)
-    (update-state (validate-finally-body expression) (update-state (validate-body expression) state break continue return
-                                                                   (lambda (e new-state) (update-state
-                                                                                          (validate-finally-body expression)
-                                                                                          (catch-state (validate-catch-body expression) e (get-error expression)
-                                                                                                       new-state break continue return throw)
-                                                                                          break continue return throw))) break continue return throw)))
+    (call/cc
+     (lambda (k)
+       (let* ((finally-block (create-finally-block (get-finally-block expression)))
+              (try-block (create-try-block (get-try-block expression)))
+              (new-break (lambda (new-state)
+                            (break
+                              (block-state finally-block new-state break continue return throw))))
+              (new-continue (lambda (new-state)
+                              (continue
+                               (block-state finally-block new-state break continue return throw))))
+              (new-return (lambda (r)
+                            (begin
+                              (block-state finally-block state break continue return throw) (return r))))
+              (new-throw (throw-catch-continuation
+                          (get-catch-block expression) state break continue return throw k finally-block)))
+         (block-state finally-block
+                      (block-state try-block state new-break new-continue new-return new-throw)
+                      break continue return throw))))))
 
-;; State after a catch block
-(define catch-state
-  (lambda (expression error type state break continue return throw)
-    (update-state expression (add-variable type error state) break continue return throw)))
+
+;; Takes a catch block, state, continuations, and a finally block. Evaluates a catch block if encountered,
+;; binds and throws the error accordingly, then evaluates the given finally block
+(define throw-catch-continuation
+  (lambda (catch state break continue return throw k finally-block)
+    (cond
+      ((null? catch) (lambda (e new-state)
+                       (throw
+                        e (block-state finally-block new-state break continue return throw))))
+      ((not (eq? (operator catch) 'catch)) (error 'invalidCatch "Invalid catch block encountered"))
+      (else (lambda (e new-state)
+              (k (block-state finally-block
+                              (remove-state-layer
+                               (run-helper (get-catch-block catch)
+                                           (lambda (new-state-2)
+                                             (break (remove-state-layer new-state-2)))
+                                           (lambda (new-state-2)
+                                             (continue (remove-state-layer new-state-2)))
+                                           (add-variable (get-catch-error catch) e (push-state-layer state))
+                                           (lambda (v new-state-2)
+                                             (throw v (remove-state-layer new-state-2)))))
+                              break continue return throw)))))))
+
+;; Helper function for try-catch that takes an expression, creates a finally block
+(define create-finally-block
+  (lambda (expression)
+    (cond
+      ((null? expression) '(begin))
+      ((not (eq? (operator expression) 'finally)) (error 'nonformattedBlock "Inproperly formatted finally block encountered"))
+      (else (cons 'begin (get-finally-body expression))))))
+
+
+;; Helper function for try-catch that takes an expression, creates a try-block
+(define create-try-block
+  (lambda (expression)
+    (cons 'begin expression)))
+
+
+;; Copy of run function from InterpreterMain, used here to prevent circular dependency
+;; NOTE FOR LATER: Probably a good idea to combine all but InterpreterUtil functions into a single file, eliminate things like this
+(define run-helper
+  (lambda (program state break continue return throw)
+    (cond
+      ((null? program) (error "Error: no return encountered"))
+      (else (run-helper (cdr program) (update-state
+                                       (car program)
+                                       state break continue return throw)
+                        break continue return throw)))))
+              
 
 (define block-state
   (lambda (expression state break continue return throw)
@@ -130,6 +197,9 @@
       ((null? expression) (remove-state-layer state))
       ((eq? (operator (car expression)) 'break) (break (remove-state-layer state)))
       ((eq? (operator (car expression)) 'continue) (continue (remove-state-layer state)))
-      (else (block-state (cdr expression) (update-state (car expression) state break continue return throw) break continue return throw)))))
+      (else (block-state (cdr expression) (update-state
+                                           (car expression)
+                                           state break continue return throw)
+                         break continue return throw)))))
 
 

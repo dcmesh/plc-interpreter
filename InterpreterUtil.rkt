@@ -9,6 +9,11 @@
 (provide operator)
 (provide left-op)
 (provide right-op)
+(provide get-try-block)
+(provide get-catch-block)
+(provide get-catch-error)
+(provide get-finally-block)
+(provide get-finally-body)
 (provide operand)
 (provide init-state)
 (provide init-layer)
@@ -82,6 +87,16 @@
 
 ;; right-op gets the righthand expression for some operation
 (define right-op caddr)
+
+
+;; methods for getting blocks in try-catch
+(define get-try-block cadr)
+(define get-catch-block caddr)
+(define get-catch-error
+  (lambda (catch)
+    (car (left-op catch))))
+(define get-finally-block cadddr)
+(define get-finally-body cadr)
 
 
 ;; the state that should be used when starting a program

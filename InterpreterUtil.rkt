@@ -90,13 +90,15 @@
 
 ;; methods for getting blocks in try-catch
 (define get-try-block cadr)
+
 (define get-catch-block
   (lambda (expression)
-    (cdr (caddr expression))))
+    (caddr (caddr expression))))
 
 (define get-catch-error
-  (lambda (catch)
-    (car (left-op catch))))
+  (lambda (expression)
+    (caadr (caddr expression))))
+
 (define get-finally-block
   (lambda (expression)
     (cadar (cdddr expression))))

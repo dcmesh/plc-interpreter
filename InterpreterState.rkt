@@ -24,7 +24,7 @@
                                              (while-state expression state new-break continue return throw))))
       ((eq? (operator expression) 'if) (if-state expression state break continue return throw))
       ((eq? (operator expression) 'break) (break state))
-      ((eq? (operator expression) 'throw) (throw (left-op expression) state throw))
+      ((eq? (operator expression) 'throw) (throw (value (left-op expression) state) (remove-state-layer state)))
       ((eq? (operator expression) 'try) (try-state expression state break continue return throw))
       ((eq? (operator expression) 'continue) (continue state))
       ((eq? (operator expression) 'begin) (block-state
@@ -128,37 +128,27 @@
                               (lambda (new-throw)
                                 (catch-continuation
                                  (get-try-block expression)
-                                 (lambda (v) (block-state (get-catch-block expression) (add-variable (get-catch-error expression) v (push-state-layer  init-layer state))))
+                                 (get-catch-block expression)
+                                 (get-catch-error expression)
                                  (push-state-layer init-layer state)
                                  break continue return new-throw))))
-                             break continue return throw)))
+                 break continue return throw)))
 
 
 ;; Takes a catch block, state, continuations, and a finally block. Evaluates a catch block if encountered,
 ;; binds and throws the error accordingly, then evaluates the given finally block
 (define catch-continuation
-  (lambda (try catch-cont state break continue return throw)
-    (block-state try state break continue return catch-cont)))
-
-;; Copy of run function from InterpreterMain, used here to prevent circular dependency
-;; NOTE FOR LATER: Probably a good idea to combine all but InterpreterUtil functions into a single file, eliminate things like this
-(define run-helper
-  (lambda (program state break continue return throw)
-    (cond
-      ((null? program) (error "Error: no return encountered"))
-      (else (run-helper (cdr program) (update-state
-                                       (car program)
-                                       state break continue return throw)
-                        break continue return throw)))))
+  (lambda (try catch-block catch-error state break continue return throw)
+    (block-state try state break continue return
+                 (lambda (value throw-state)
+                   (throw (block-state catch-block (add-variable catch-error value (push-state-layer init-layer throw-state)) break continue return throw))))))
               
-
 (define block-state
   (lambda (expression state break continue return throw)
     (cond
       ((null? expression) (remove-state-layer state))
       ((eq? (operator (car expression)) 'break) (break (remove-state-layer state)))
       ((eq? (operator (car expression)) 'continue) (continue (remove-state-layer state)))
-      ((eq? (operator (car expression)) 'throw) (throw (remove-state-layer state)))
       (else (block-state (cdr expression) (update-state
                                            (car expression)
                                            state break continue return throw)

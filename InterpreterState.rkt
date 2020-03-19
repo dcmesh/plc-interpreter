@@ -23,9 +23,9 @@
                                            (lambda (new-break)
                                              (while-state expression state new-break continue return throw))))
       ((eq? (operator expression) 'if) (if-state expression state break continue return throw))
-      ((eq? (operator expression) 'try) (try-state expression state break continue return throw))
-      ((eq? (operator expression) 'throw) (throw (right-op expression) state))
       ((eq? (operator expression) 'break) (break state))
+      ((eq? (operator expression) 'throw) (throw (right-op expression) state throw))
+      ((eq? (operator expression) 'try) (try-state expression state break continue return throw))
       ((eq? (operator expression) 'continue) (continue state))
       ((eq? (operator expression) 'begin) (block-state
                                            (cdr expression)
@@ -154,12 +154,13 @@
       (else (lambda (e new-state)
               (k (block-state finally-block
                               (remove-state-layer
-                               (run-helper (get-catch-block catch)
+                               (update-state (get-catch-block catch)
+                                           (add-variable (get-catch-error catch) e (push-state-layer (init-layer) new-state))
                                            (lambda (new-state-2)
                                              (break (remove-state-layer new-state-2)))
                                            (lambda (new-state-2)
                                              (continue (remove-state-layer new-state-2)))
-                                           (add-variable (get-catch-error catch) e (push-state-layer state))
+                                           return
                                            (lambda (v new-state-2)
                                              (throw v (remove-state-layer new-state-2)))))
                               break continue return throw)))))))
@@ -170,7 +171,7 @@
     (cond
       ((null? expression) '(begin))
       ((not (eq? (operator expression) 'finally)) (error 'nonformattedBlock "Inproperly formatted finally block encountered"))
-      (else (cons 'begin (get-finally-body expression))))))
+      (else (cons 'begin (cadr expression))))))
 
 
 ;; Helper function for try-catch that takes an expression, creates a try-block

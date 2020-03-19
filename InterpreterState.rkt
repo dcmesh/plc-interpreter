@@ -137,8 +137,8 @@
                               (block-state finally-block state break continue return throw) (return r))))
               (new-throw (throw-catch-continuation
                           (get-catch-block expression) state break continue return throw k finally-block)))
-         (block-state finally-block
-                      (block-state try-block state new-break new-continue new-return new-throw)
+         (block-state (cdr finally-block)
+                      (block-state (cdr try-block) state new-break new-continue new-return new-throw)
                       break continue return throw))))))
 
 

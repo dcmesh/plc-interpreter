@@ -93,11 +93,15 @@
 
 (define get-catch-block
   (lambda (expression)
-    (caddr (caddr expression))))
+    (if (null? (caddr expression))
+        '()
+        (caddr (caddr expression)))))
 
 (define get-catch-error
   (lambda (expression)
-    (caadr (caddr expression))))
+    (if (null? (caddr expression))
+        '()
+        (caadr (caddr expression)))))
 
 (define get-finally-block
   (lambda (expression)

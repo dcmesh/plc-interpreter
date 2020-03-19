@@ -30,7 +30,9 @@
       ((eq? (operator expression) 'begin) (block-state
                                            (cdr expression)
                                            (push-state-layer init-layer state)
-                                           break continue return throw))
+                                           (lambda (v) (break (remove-state-layer v)))
+                                           (lambda (v) (continue (remove-state-layer v)))
+                                           return throw))
       (else (error "Unexpected expression")))))
 
 
@@ -96,7 +98,8 @@
     (if (value (left-op expression) state)
         (while-state expression
                      (call/cc (lambda (new-continue)
-                                (update-state (right-op expression) state
+                                (update-state (right-op expression)
+                                              state
                                               break new-continue
                                               return throw)))
                      break continue return throw)
@@ -147,8 +150,6 @@
   (lambda (expression state break continue return throw)
     (cond
       ((null? expression) (remove-state-layer state))
-      ((eq? (operator (car expression)) 'break) (break (remove-state-layer state)))
-      ((eq? (operator (car expression)) 'continue) (continue (remove-state-layer state)))
       (else (block-state (cdr expression) (update-state
                                            (car expression)
                                            state break continue return throw)

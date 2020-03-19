@@ -40,7 +40,7 @@
 
 
 ;; Takes a variable name var a value for the variable and the current state
-;; Returns the state with the addition of inputted variable name and value
+;; Returns the state with the addition of inputted variable name and value on the top layer
 (define add-variable
   (lambda (var value state)
     (cons (list (cons var (var-names state))
@@ -83,6 +83,8 @@
   (lambda (expression state break continue return throw)
     (assignment-state-helper expression state state break continue return throw)))
 
+;; This helper function keeps the full state from when assignment-state was called
+;; so that it can be used in the value function
 (define assignment-state-helper
   (lambda (expression current-state full-state break continue return throw)
     (cond
@@ -102,6 +104,8 @@
               (while-state-helper
                expression state new-break continue return throw)))))
 
+;; This helper function is used so that the above function
+;; can create a single new break continuation for the entire while loop
 (define while-state-helper
   (lambda (expression state break continue return throw)
     (if (value (left-op expression) state)
@@ -159,6 +163,9 @@
                                  (init-layer-value catch-error value)
                                  break continue return old-throw))))))
 
+;; The block state takes a list of expressions, a layer, and a state
+;; The new layer is inseted onto the state, the expressions are executed,
+;; and the layer is removed when the block is exited
 (define block-state
   (lambda (expression state layer break continue return throw)
     (block-state-helper expression
@@ -168,6 +175,9 @@
                         return
                         (lambda (v s) (throw v (remove-state-layer s))))))
 
+;; Recursive part of block-state
+;; Used so that the layer can be added and all the continuations updated
+;; only once when the state is entered
 (define block-state-helper
   (lambda (expression state break continue return throw)
     (cond

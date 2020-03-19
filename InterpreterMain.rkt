@@ -41,6 +41,4 @@
     (cond
       ((eq? return-value #t) 'true)
       ((eq? return-value #f) 'false)
-      ((eq? return-value 'undeclared) (error "Error: undeclared variable encountered."))
-      ((eq? return-value 'uninitialized) (error "Error: uninitialized variable encountered."))
       (else return-value))))

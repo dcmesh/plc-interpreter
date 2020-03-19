@@ -85,21 +85,24 @@
 (define right-op caddr)
 
 
-;; methods for getting blocks in try-catch
+;; Retrieves try block in try-catch
 (define get-try-block cadr)
 
+;; Retrives catch block in try-catch
 (define get-catch-block
   (lambda (expression)
     (if (null? (caddr expression))
         '()
         (caddr (caddr expression)))))
 
+;; gets the name of the variable in a catch block
 (define get-catch-error
   (lambda (expression)
     (if (null? (caddr expression))
         '()
         (caadr (caddr expression)))))
 
+;; Retrives the finally block in a try catch statement
 (define get-finally-block
   (lambda (expression)
     (if (null? (car (cdddr expression)))
@@ -110,8 +113,10 @@
 ;; the state that should be used when starting a program
 (define init-state '((() ())))
 
+;; the intial layer that should be added when a block is entered
 (define init-layer '(() ()))
 
+;; creates a name and a value and creates a new layer with a variable of that name and value
 (define init-layer-value
   (lambda (name value) (list (list name) (list (box value)))))
 

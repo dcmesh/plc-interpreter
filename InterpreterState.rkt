@@ -25,7 +25,7 @@
       ((eq? (operator expression) 'throw) (throw (right-op expression) state))
       ((eq? (operator expression) 'break) (break state))
       ((eq? (operator expression) 'continue) (continue state))
-      ((eq? (operator expression) 'begin) (block-state expression (push-state-layer init-layer state) break continue return throw))
+      ((eq? (operator expression) 'begin) (block-state (cdr expression) (push-state-layer init-layer state) break continue return throw))
       (else (error "Unexpected expression")))))
 
 
@@ -126,8 +126,10 @@
 
 (define block-state
   (lambda (expression state break continue return throw)
-    (if (null? expression)
-        (remove-state-layer state)
-        (block-state (cdr expression) (update-state (car expression) state break continue return throw) break continue return throw))))
+    (cond
+      ((null? expression) (remove-state-layer state))
+      ((eq? (operator (car expression)) 'break) (break (remove-state-layer state)))
+      ((eq? (operator (car expression)) 'continue) (continue (remove-state-layer state)))
+      (else (block-state (cdr expression) (update-state (car expression) state break continue return throw) break continue return throw)))))
 
 

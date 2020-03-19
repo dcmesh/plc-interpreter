@@ -36,10 +36,10 @@
       ((eq? (operator expression) 'begin) (block-state
                                            (cdr expression)
                                            (push-state-layer init-layer state)
-                                           (lambda (v) (break (remove-state-layer v)))
-                                           (lambda (v) (continue (remove-state-layer v)))
+                                           break
+                                           continue
                                            return
-                                           (lambda (v s) (throw v (remove-state-layer s)))))
+                                           throw))
       (else (error "Unexpected expression")))))
 
 
@@ -155,12 +155,21 @@
                     (block-state catch-block
                                  (add-variable catch-error value (push-state-layer init-layer throw-state))
                                  break continue return old-throw))))))
-              
+
 (define block-state
+  (lambda (expression state break continue return throw)
+    (block-state-helper expression
+                        state
+                        (lambda (v) (break (remove-state-layer v)))
+                        (lambda (v) (continue (remove-state-layer v)))
+                        return
+                        (lambda (v s) (throw v (remove-state-layer s))))))
+
+(define block-state-helper
   (lambda (expression state break continue return throw)
     (cond
       ((null? expression) (remove-state-layer state))
-      (else (block-state (cdr expression) (update-state
+      (else (block-state-helper (cdr expression) (update-state
                                            (car expression)
                                            state break continue return throw)
                          break continue return throw)))))

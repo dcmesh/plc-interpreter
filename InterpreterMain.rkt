@@ -23,7 +23,7 @@
              (lambda (v) (error "Error: Invalid break encountered."))
              (lambda (v) ("Error: Invalid continue encountered."))
              return
-             (lambda (v s) (error "Error: Unexpected problem encountered." s))))))))
+             (lambda (v s) (error "Error: Uncaught Exception"))))))))
 
 (define run
   (lambda (program state break continue return throw)

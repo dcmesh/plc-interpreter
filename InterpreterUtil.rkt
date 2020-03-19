@@ -16,6 +16,7 @@
 (provide operand)
 (provide init-state)
 (provide init-layer)
+(provide init-layer-value)
 (provide num-operands)
 (provide is-declared)
 (provide is-atom)
@@ -110,6 +111,9 @@
 (define init-state '((() ())))
 
 (define init-layer '(() ()))
+
+(define init-layer-value
+  (lambda (name value) (list (list name) (list (box value)))))
 
 ;; operand gets the ith expression for some operation
 (define operand

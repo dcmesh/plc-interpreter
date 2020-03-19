@@ -22,9 +22,8 @@
                                          expression state break continue return throw))
       ((eq? (operator expression) '=) (assignment-state
                                        expression state break continue return throw))
-      ((eq? (operator expression) 'while) (call/cc
-                                           (lambda (new-break)
-                                             (while-state expression state new-break continue return throw))))
+      ((eq? (operator expression) 'while) (while-state
+                                           expression state break continue return throw))
       ((eq? (operator expression) 'if) (if-state
                                         expression state break continue return throw))
       ((eq? (operator expression) 'break) (break state))
@@ -35,11 +34,8 @@
       ((eq? (operator expression) 'continue) (continue state))
       ((eq? (operator expression) 'begin) (block-state
                                            (cdr expression)
-                                           (push-state-layer init-layer state)
-                                           break
-                                           continue
-                                           return
-                                           throw))
+                                           state init-layer
+                                           break continue return throw))
       (else (error "Unexpected expression")))))
 
 
@@ -102,8 +98,14 @@
 ;; and recurse on the updated state after the right operand has been evaluated
 (define while-state
   (lambda (expression state break continue return throw)
+    (call/cc (lambda (new-break)
+              (while-state-helper
+               expression state new-break continue return throw)))))
+
+(define while-state-helper
+  (lambda (expression state break continue return throw)
     (if (value (left-op expression) state)
-        (while-state expression
+        (while-state-helper expression
                      (call/cc (lambda (new-continue)
                                 (update-state (right-op expression)
                                               state
@@ -133,15 +135,15 @@
 (define try-state
   (lambda (expression state break continue return throw)
     (block-state (get-finally-block expression)
-                 (push-state-layer init-layer
-                             (call/cc
-                              (lambda (new-throw)
-                                (catch-continuation
-                                 (get-try-block expression)
-                                 (get-catch-block expression)
-                                 (get-catch-error expression)
-                                 (push-state-layer init-layer state)
-                                 break continue return new-throw throw))))
+                 (call/cc
+                  (lambda (new-throw)
+                    (catch-continuation
+                     (get-try-block expression)
+                     (get-catch-block expression)
+                     (get-catch-error expression)
+                     (push-state-layer init-layer state)
+                     break continue return new-throw throw)))
+                 init-layer
                  break continue return throw)))
 
 
@@ -149,17 +151,18 @@
 ;; and the catch block if present
 (define catch-continuation
   (lambda (try catch-block catch-error state break continue return new-throw old-throw)
-    (block-state try state break continue return
+    (block-state try state init-layer break continue return
                  (lambda (value throw-state)
                    (new-throw
                     (block-state catch-block
-                                 (add-variable catch-error value (push-state-layer init-layer throw-state))
+                                 throw-state
+                                 (init-layer-value catch-error value)
                                  break continue return old-throw))))))
 
 (define block-state
-  (lambda (expression state break continue return throw)
+  (lambda (expression state layer break continue return throw)
     (block-state-helper expression
-                        state
+                        (push-state-layer layer state)
                         (lambda (v) (break (remove-state-layer v)))
                         (lambda (v) (continue (remove-state-layer v)))
                         return

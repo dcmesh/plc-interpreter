@@ -12,7 +12,7 @@
 
 
 ;; Function to interpret a program contained in a file
-;; This will call the parser and initialize the state
+;; This will call the parser and initialize the state as well as continuations
 (define interpret
   (lambda (file)
     (sanitize-return
@@ -25,6 +25,7 @@
              return
              (lambda (v s) (error "Error: Uncaught Exception"))))))))
 
+;; Sequentially executes the statements in a program
 (define run
   (lambda (program state break continue return throw)
     (cond

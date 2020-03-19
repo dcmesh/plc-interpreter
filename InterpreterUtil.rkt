@@ -101,7 +101,9 @@
 
 (define get-finally-block
   (lambda (expression)
-    (cadar (cdddr expression))))
+    (if (null? (car (cdddr expression)))
+        '()
+        (cadar (cdddr expression)))))
 
 
 ;; the state that should be used when starting a program

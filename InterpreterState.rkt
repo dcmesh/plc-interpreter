@@ -131,17 +131,17 @@
                                  (get-catch-block expression)
                                  (get-catch-error expression)
                                  (push-state-layer init-layer state)
-                                 break continue return new-throw))))
+                                 break continue return new-throw throw))))
                  break continue return throw)))
 
 
 ;; Takes a catch block, state, continuations, and a finally block. Evaluates a catch block if encountered,
 ;; binds and throws the error accordingly, then evaluates the given finally block
 (define catch-continuation
-  (lambda (try catch-block catch-error state break continue return throw)
+  (lambda (try catch-block catch-error state break continue return new-throw old-throw)
     (block-state try state break continue return
                  (lambda (value throw-state)
-                   (throw (block-state catch-block (add-variable catch-error value (push-state-layer init-layer throw-state)) break continue return throw))))))
+                   (new-throw (block-state catch-block (add-variable catch-error value (push-state-layer init-layer throw-state)) break continue return old-throw))))))
               
 (define block-state
   (lambda (expression state break continue return throw)

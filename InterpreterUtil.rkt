@@ -13,7 +13,6 @@
 (provide get-catch-block)
 (provide get-catch-error)
 (provide get-finally-block)
-(provide get-finally-body)
 (provide operand)
 (provide init-state)
 (provide init-layer)
@@ -91,12 +90,16 @@
 
 ;; methods for getting blocks in try-catch
 (define get-try-block cadr)
-(define get-catch-block caddr)
+(define get-catch-block
+  (lambda (expression)
+    (cdr (caddr expression))))
+
 (define get-catch-error
   (lambda (catch)
     (car (left-op catch))))
-(define get-finally-block cadddr)
-(define get-finally-body cadr)
+(define get-finally-block
+  (lambda (expression)
+    (cadar (cdddr expression))))
 
 
 ;; the state that should be used when starting a program

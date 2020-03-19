@@ -24,7 +24,7 @@
                                              (while-state expression state new-break continue return throw))))
       ((eq? (operator expression) 'if) (if-state expression state break continue return throw))
       ((eq? (operator expression) 'break) (break state))
-      ((eq? (operator expression) 'throw) (throw (right-op expression) state throw))
+      ((eq? (operator expression) 'throw) (throw (left-op expression) state throw))
       ((eq? (operator expression) 'try) (try-state expression state break continue return throw))
       ((eq? (operator expression) 'continue) (continue state))
       ((eq? (operator expression) 'begin) (block-state
@@ -122,63 +122,23 @@
 ;; a throw continuation is made, along with a try-catch-finally sequence, which is then evaluated.
 (define try-state
   (lambda (expression state break continue return throw)
-    (call/cc
-     (lambda (k)
-       (let* ((finally-block (create-finally-block (get-finally-block expression)))
-              (try-block (create-try-block (get-try-block expression)))
-              (new-break (lambda (new-state)
-                            (break
-                              (block-state finally-block new-state break continue return throw))))
-              (new-continue (lambda (new-state)
-                              (continue
-                               (block-state finally-block new-state break continue return throw))))
-              (new-return (lambda (r)
-                            (begin
-                              (block-state finally-block state break continue return throw) (return r))))
-              (new-throw (throw-catch-continuation
-                          (get-catch-block expression) state break continue return throw k finally-block)))
-         (block-state (cdr finally-block)
-                      (block-state (cdr try-block) state new-break new-continue new-return new-throw)
-                      break continue return throw))))))
+    (block-state (get-finally-block expression)
+                 (push-state-layer init-layer
+                             (call/cc
+                              (lambda (new-throw)
+                                (catch-continuation
+                                 (get-try-block expression)
+                                 (lambda (v) (block-state (get-catch-block expression) (add-variable (get-catch-error expression) v (push-state-layer  init-layer state))))
+                                 (push-state-layer init-layer state)
+                                 break continue return new-throw))))
+                             break continue return throw)))
 
 
 ;; Takes a catch block, state, continuations, and a finally block. Evaluates a catch block if encountered,
 ;; binds and throws the error accordingly, then evaluates the given finally block
-(define throw-catch-continuation
-  (lambda (catch state break continue return throw k finally-block)
-    (cond
-      ((null? catch) (lambda (e new-state)
-                       (throw
-                        e (block-state finally-block new-state break continue return throw))))
-      ((not (eq? (operator catch) 'catch)) (error 'invalidCatch "Invalid catch block encountered"))
-      (else (lambda (e new-state)
-              (k (block-state finally-block
-                              (remove-state-layer
-                               (update-state (get-catch-block catch)
-                                           (add-variable (get-catch-error catch) e (push-state-layer (init-layer) new-state))
-                                           (lambda (new-state-2)
-                                             (break (remove-state-layer new-state-2)))
-                                           (lambda (new-state-2)
-                                             (continue (remove-state-layer new-state-2)))
-                                           return
-                                           (lambda (v new-state-2)
-                                             (throw v (remove-state-layer new-state-2)))))
-                              break continue return throw)))))))
-
-;; Helper function for try-catch that takes an expression, creates a finally block
-(define create-finally-block
-  (lambda (expression)
-    (cond
-      ((null? expression) '(begin))
-      ((not (eq? (operator expression) 'finally)) (error 'nonformattedBlock "Inproperly formatted finally block encountered"))
-      (else (cons 'begin (cadr expression))))))
-
-
-;; Helper function for try-catch that takes an expression, creates a try-block
-(define create-try-block
-  (lambda (expression)
-    (cons 'begin expression)))
-
+(define catch-continuation
+  (lambda (try catch-cont state break continue return throw)
+    (block-state try state break continue return catch-cont)))
 
 ;; Copy of run function from InterpreterMain, used here to prevent circular dependency
 ;; NOTE FOR LATER: Probably a good idea to combine all but InterpreterUtil functions into a single file, eliminate things like this
@@ -198,6 +158,7 @@
       ((null? expression) (remove-state-layer state))
       ((eq? (operator (car expression)) 'break) (break (remove-state-layer state)))
       ((eq? (operator (car expression)) 'continue) (continue (remove-state-layer state)))
+      ((eq? (operator (car expression)) 'throw) (throw (remove-state-layer state)))
       (else (block-state (cdr expression) (update-state
                                            (car expression)
                                            state break continue return throw)

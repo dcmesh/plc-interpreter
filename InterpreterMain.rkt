@@ -6,7 +6,7 @@
 
 
 ;;;----------------------------------------------------------------------------------
-;;; Interpreter Assignment 1 for EECS 345
+;;; Interpreter Assignment 2 for EECS 345
 ;;; Group 30: David Meshnick (dcm101), Austin Keppers (agk51), Trey Starshak (mjs386)
 ;;;----------------------------------------------------------------------------------
 

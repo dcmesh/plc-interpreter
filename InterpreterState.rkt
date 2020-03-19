@@ -24,7 +24,7 @@
                                              (while-state expression state new-break continue return throw))))
       ((eq? (operator expression) 'if) (if-state expression state break continue return throw))
       ((eq? (operator expression) 'break) (break state))
-      ((eq? (operator expression) 'throw) (throw (value (left-op expression) state) (remove-state-layer state)))
+      ((eq? (operator expression) 'throw) (throw (value (left-op expression) state) state))
       ((eq? (operator expression) 'try) (try-state expression state break continue return throw))
       ((eq? (operator expression) 'continue) (continue state))
       ((eq? (operator expression) 'begin) (block-state
@@ -32,7 +32,8 @@
                                            (push-state-layer init-layer state)
                                            (lambda (v) (break (remove-state-layer v)))
                                            (lambda (v) (continue (remove-state-layer v)))
-                                           return throw))
+                                           return
+                                           (lambda (v s) (throw v (remove-state-layer s)))))
       (else (error "Unexpected expression")))))
 
 

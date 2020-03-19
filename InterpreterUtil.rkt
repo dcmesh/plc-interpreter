@@ -19,10 +19,6 @@
 (provide num-operands)
 (provide is-declared)
 (provide is-atom)
-(provide validate-body)
-(provide validate-catch-body)
-(provide validate-finally-body)
-(provide get-error)
 
 
 ;;;---------------------------------------------------------
@@ -145,25 +141,3 @@
 (define is-atom
   (lambda (expression)
     (and (not (pair? expression)) (not (null? expression)))))
-
-
-;; Validates the existance of an expression's body 
-(define validate-body cadr)
-
-
-;; Validates the existance of an expression's catch body
-(define validate-catch-body
-  (lambda (expression)
-    (cdr (cdaddr expression))))
-
-
-;; Validates the existance of an expression's finally body
-(define validate-finally-body
-  (lambda (expression)
-    (validate-body (cadddr expression))))
-
-
-;; Gets the type of error being caught
-(define get-error
-  (lambda (expression)
-    (caar (cdaddr expression))))

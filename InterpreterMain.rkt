@@ -29,7 +29,9 @@
   (lambda (program state break continue return throw)
     (cond
       ((null? program) (error "Error: no return encountered"))
-      (else (run (cdr program) (update-state (car program) state break continue return throw) break continue return throw)))))
+      (else (run (cdr program)
+                 (update-state (car program) state break continue return throw)
+                 break continue return throw)))))
 
 
 ;; Changes the boolean return from #t and #f to true and false

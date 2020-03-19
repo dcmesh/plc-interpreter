@@ -16,16 +16,22 @@
     (cond
       ((null? expression) state)
       ((is-atom expression) state)
-      ((eq? (operator expression) 'return) (return (value (left-op expression) state)))
-      ((eq? (operator expression) 'var) (declare-state expression state break continue return throw))
-      ((eq? (operator expression) '=) (assignment-state expression state break continue return throw))
+      ((eq? (operator expression) 'return) (return
+                                            (value (left-op expression) state)))
+      ((eq? (operator expression) 'var) (declare-state
+                                         expression state break continue return throw))
+      ((eq? (operator expression) '=) (assignment-state
+                                       expression state break continue return throw))
       ((eq? (operator expression) 'while) (call/cc
                                            (lambda (new-break)
                                              (while-state expression state new-break continue return throw))))
-      ((eq? (operator expression) 'if) (if-state expression state break continue return throw))
+      ((eq? (operator expression) 'if) (if-state
+                                        expression state break continue return throw))
       ((eq? (operator expression) 'break) (break state))
-      ((eq? (operator expression) 'throw) (throw (value (left-op expression) state) state))
-      ((eq? (operator expression) 'try) (try-state expression state break continue return throw))
+      ((eq? (operator expression) 'throw) (throw
+                                           (value (left-op expression) state) state))
+      ((eq? (operator expression) 'try) (try-state
+                                         expression state break continue return throw))
       ((eq? (operator expression) 'continue) (continue state))
       ((eq? (operator expression) 'begin) (block-state
                                            (cdr expression)
@@ -139,13 +145,16 @@
                  break continue return throw)))
 
 
-;; Takes a catch block, state, continuations, and a finally block. Evaluates a catch block if encountered,
-;; binds and throws the error accordingly, then evaluates the given finally block
+;; Takes a try block, catch block and error, state, continuations, and evaluates the try block
+;; and the catch block if present
 (define catch-continuation
   (lambda (try catch-block catch-error state break continue return new-throw old-throw)
     (block-state try state break continue return
                  (lambda (value throw-state)
-                   (new-throw (block-state catch-block (add-variable catch-error value (push-state-layer init-layer throw-state)) break continue return old-throw))))))
+                   (new-throw
+                    (block-state catch-block
+                                 (add-variable catch-error value (push-state-layer init-layer throw-state))
+                                 break continue return old-throw))))))
               
 (define block-state
   (lambda (expression state break continue return throw)

@@ -54,17 +54,43 @@
   (lambda (expression state)
     (cond
       ((null? expression) (error 'parser "parser should have caught this"))
-      ((eq? '+ (operator expression)) (+ (value (left-op expression) state) (value (right-op expression) state)))
-      ((eq? '* (operator expression)) (* (value (left-op expression) state) (value (right-op expression) state)))
-      ((eq? '- (operator expression)) (- (value (left-op expression) state) (value (right-op expression) state)))
-      ((eq? '/ (operator expression)) (quotient (value (left-op expression) state) (value (right-op expression) state)))
-      ((eq? '% (operator expression)) (modulo (value (left-op expression) state) (value (right-op expression) state)))
-      ((eq? '== (operator expression)) (eq? (value (left-op expression) state) (value (right-op expression) state)))
-      ((eq? '!= (operator expression)) (not (eq? (value (left-op expression) state) (value (right-op expression) state))))
-      ((eq? '> (operator expression)) (> (value (left-op expression) state) (value (right-op expression) state)))
-      ((eq? '< (operator expression)) (< (value (left-op expression) state) (value (right-op expression) state)))
-      ((eq? '<= (operator expression)) (<= (value (left-op expression) state) (value (right-op expression) state)))
-      ((eq? '>= (operator expression)) (>= (value (left-op expression) state) (value (right-op expression) state)))
-      ((eq? '&& (operator expression)) (and (eq? (value (left-op expression) state) #t) (eq? (value (right-op expression) state) #t)))
-      ((eq? '|| (operator expression)) (or (eq? (value (left-op expression) state) #t) (eq? (value (right-op expression) state) #t)))
+      ((eq? '+ (operator expression)) (+
+                                       (value (left-op expression) state)
+                                       (value (right-op expression) state)))
+      ((eq? '* (operator expression)) (*
+                                       (value (left-op expression) state)
+                                       (value (right-op expression) state)))
+      ((eq? '- (operator expression)) (-
+                                       (value (left-op expression) state)
+                                       (value (right-op expression) state)))
+      ((eq? '/ (operator expression)) (quotient
+                                       (value (left-op expression) state)
+                                       (value (right-op expression) state)))
+      ((eq? '% (operator expression)) (modulo
+                                       (value (left-op expression) state)
+                                       (value (right-op expression) state)))
+      ((eq? '== (operator expression)) (eq?
+                                        (value (left-op expression) state)
+                                        (value (right-op expression) state)))
+      ((eq? '!= (operator expression)) (not (eq?
+                                             (value (left-op expression) state)
+                                             (value (right-op expression) state))))
+      ((eq? '> (operator expression)) (>
+                                       (value (left-op expression) state)
+                                       (value (right-op expression) state)))
+      ((eq? '< (operator expression)) (<
+                                       (value (left-op expression) state)
+                                       (value (right-op expression) state)))
+      ((eq? '<= (operator expression)) (<=
+                                        (value (left-op expression) state)
+                                        (value (right-op expression) state)))
+      ((eq? '>= (operator expression)) (>=
+                                        (value (left-op expression) state)
+                                        (value (right-op expression) state)))
+      ((eq? '&& (operator expression)) (and
+                                        (eq? (value (left-op expression) state) #t)
+                                        (eq? (value (right-op expression) state) #t)))
+      ((eq? '|| (operator expression)) (or
+                                        (eq? (value (left-op expression) state) #t)
+                                        (eq? (value (right-op expression) state) #t)))
       (else (error 'badop "The operator is not known, or type mismatch")))))

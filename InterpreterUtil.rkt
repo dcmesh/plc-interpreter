@@ -118,7 +118,95 @@
 
 ;; creates a name and a value and creates a new layer with a variable of that name and value
 (define init-layer-value
-  (lambda (name value) (list (list name) (list (box value)))))
+  (lambda (name value)
+    (list (list name) (list (box value)))))
+
+;;---------------------------------------------------------------
+;;---------------------------------------------------------------
+;; Utility functions for function calls
+(define list-var car)
+(define first-var caar)
+(define rest-var cdar)
+(define list-value cadr)
+(define first-value caadr)
+(define rest-value cdadr)
+(define first-layer car)
+(define rest-layer cdr)
+
+;; checks if a given layer is empty
+(define empty-layer?
+  (lambda (layer)
+    (null? (list-var layer))))
+
+;; gets the layer that has the first removed binding
+(define remaining-bindings
+  (lambda (layer)
+    (list (rest-var layer) (rest-value layer))))
+
+;; lookup a variable in a layer
+(define lookup-var-in-layer
+  (lambda (var layer)
+    (cond
+      ((empty-layer? layer) 'undeclared)
+      ((eq? var (first-var layer)) (first-value layer))
+      (else (lookup-var-in-layer (remaining-bindings layer))))))
+
+;; checks if a variable is in a given layer
+(define var-in-layer?
+  (lambda (var layer)
+    (not (eq? (lookup-var-in-layer var layer) 'undeclared))))
+
+;; binds a variable-value pair, adds it to the given layer
+(define bind-to-layer
+  (lambda (var value layer)
+    (list (cons var (list-var layer))
+          (cons value (list-value layer)))))
+
+;; lookup a variable in a state
+(define lookup-var-in-state
+  (lambda (var state)
+    (cond
+      ((null? state) 'undeclared)
+      ((var-in-layer? var (first-layer state)) (lookup-var-in-layer var (first-layer state)))
+      (else (lookup-var-in-state var (rest-layer state))))))
+
+;; checks if a variable is in a given state
+(define var-in-state?
+  (lambda (var state)
+    (not (eq? (lookup-var-in-state var state) 'undeclared))))
+
+;; binds a variable-value pair, adds it to the given state
+(define bind-to-state
+  (lambda (var value state)
+    (cond
+      ((var-in-layer? var (first-layer state)) (error
+                                                'peviously-Declared-Variable "Variable has already been declared"))
+      (else (cons (bind-to-layer var (box value)
+                                 (first-layer state)) (rest-layer state))))))
+
+;; gets the layer of the environment for the function being called
+(define get-function-layers
+  (lambda (function-name state)
+    (cond
+      ((null? state) (error 'undefined-Function "Function is undefined"))
+      ((var-in-layer? function-name (first-layer state)) state)
+      (else (get-function-layers function-name (rest-layer state))))))
+
+;; gets the box of a given variable in a state
+(define get-box-state
+  (lambda (var state)
+    (cond
+      ((not (var-in-state? var state)) (error 'undeclared-Variable "Variable is undeclared (possibly out of scope)"))
+      ((eq? 'uninitialized (lookup-var-in-state var state)) (error 'uninitialized-Variable "Variable is uninitialized"))
+      (else (lookup-var-in-state var state)))))
+
+;; lookup a value of a variable in a state
+(define lookup-value
+  (lambda (var state)
+    (unbox (get-box-state var state))))
+
+;;---------------------------------------------------------------
+;;---------------------------------------------------------------
 
 ;; operand gets the ith expression for some operation
 (define operand

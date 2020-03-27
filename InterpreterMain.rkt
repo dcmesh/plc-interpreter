@@ -1,5 +1,6 @@
 #lang racket
-(require "simpleParser.rkt")
+;;(require "simpleParser.rkt")
+(require "functionParser.rkt")
 (require "InterpreterState.rkt")
 (require "InterpreterValue.rkt")
 (require "InterpreterUtil.rkt")

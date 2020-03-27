@@ -4,19 +4,22 @@
 (provide push-state-layer)
 (provide remove-state-layer)
 (provide pop-state-value)
+(provide push-state-value)
 (provide state-top-layer)
 (provide operator)
 (provide left-op)
 (provide right-op)
+(provide get-try-block)
+(provide get-catch-block)
+(provide get-catch-error)
+(provide get-finally-block)
 (provide operand)
 (provide init-state)
+(provide init-layer)
+(provide init-layer-value)
 (provide num-operands)
 (provide is-declared)
 (provide is-atom)
-(provide validate-body)
-(provide validate-catch-body)
-(provide validate-finally-body)
-(provide get-error)
 
 
 ;;;---------------------------------------------------------
@@ -53,6 +56,14 @@
   (lambda (state)
     (cons (list (cdr (var-names state)) (cdr (var-values state))) (remove-state-layer state))))
 
+;; Takes a variable name var a value for the variable and the current state
+;; Returns the state with the addition of inputted variable name and value
+(define push-state-value
+  (lambda (var value state)
+    (cons (list (cons var (var-names state))
+                (cons value (var-values state)))
+          (remove-state-layer state))))
+
 
 ;; Return the top most layer of the state
 (define state-top-layer
@@ -74,9 +85,40 @@
 (define right-op caddr)
 
 
+;; Retrieves try block in try-catch
+(define get-try-block cadr)
+
+;; Retrives catch block in try-catch
+(define get-catch-block
+  (lambda (expression)
+    (if (null? (caddr expression))
+        '()
+        (caddr (caddr expression)))))
+
+;; gets the name of the variable in a catch block
+(define get-catch-error
+  (lambda (expression)
+    (if (null? (caddr expression))
+        '()
+        (caadr (caddr expression)))))
+
+;; Retrives the finally block in a try catch statement
+(define get-finally-block
+  (lambda (expression)
+    (if (null? (car (cdddr expression)))
+        '()
+        (cadar (cdddr expression)))))
+
+
 ;; the state that should be used when starting a program
 (define init-state '((() ())))
 
+;; the intial layer that should be added when a block is entered
+(define init-layer '(() ()))
+
+;; creates a name and a value and creates a new layer with a variable of that name and value
+(define init-layer-value
+  (lambda (name value) (list (list name) (list (box value)))))
 
 ;; operand gets the ith expression for some operation
 (define operand
@@ -108,25 +150,3 @@
 (define is-atom
   (lambda (expression)
     (and (not (pair? expression)) (not (null? expression)))))
-
-
-;; Validates the existance of an expression's body 
-(define validate-body cadr)
-
-
-;; Validates the existance of an expression's catch body
-(define validate-catch-body
-  (lambda (expression)
-    (cdr (cdaddr expression))))
-
-
-;; Validates the existance of an expression's finally body
-(define validate-finally-body
-  (lambda (expression)
-    (validate-body (cadddr expression))))
-
-
-;; Gets the type of error being caught
-(define get-error
-  (lambda (expression)
-    (caar (cdaddr expression))))

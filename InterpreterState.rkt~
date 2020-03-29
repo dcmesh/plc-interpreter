@@ -16,20 +16,31 @@
     (cond
       ((null? expression) state)
       ((is-atom expression) state)
-      ((eq? (operator expression) 'return) (return-state expression state break continue return throw))
-      ((eq? (operator expression) 'var) (declare-state expression state break continue return throw))
-      ((eq? (operator expression) '=) (assignment-state expression state break continue return throw))
-      ((eq? (operator expression) 'while) (while-state expression state break continue return throw))
-      ((eq? (operator expression) 'if) (if-state expression state break continue return throw))
-      ((eq? (operator expression) 'try) (try-state expression state break continue return throw))
-      ((eq? (operator expression) 'throw) (throw (right-op expression) state))
+      ((eq? (operator expression) 'return) (return
+                                            (value (left-op expression) state)))
+      ((eq? (operator expression) 'var) (declare-state
+                                         expression state break continue return throw))
+      ((eq? (operator expression) '=) (assignment-state
+                                       expression state break continue return throw))
+      ((eq? (operator expression) 'while) (while-state
+                                           expression state break continue return throw))
+      ((eq? (operator expression) 'if) (if-state
+                                        expression state break continue return throw))
       ((eq? (operator expression) 'break) (break state))
+      ((eq? (operator expression) 'throw) (throw
+                                           (value (left-op expression) state) state))
+      ((eq? (operator expression) 'try) (try-state
+                                         expression state break continue return throw))
       ((eq? (operator expression) 'continue) (continue state))
-      (else state))))
+      ((eq? (operator expression) 'begin) (block-state
+                                           (cdr expression)
+                                           state init-layer
+                                           break continue return throw))
+      (else (error "Unexpected expression")))))
 
 
 ;; Takes a variable name var a value for the variable and the current state
-;; Returns the state with the addition of inputted variable name and value
+;; Returns the state with the addition of inputted variable name and value on the top layer
 (define add-variable
   (lambda (var value state)
     (cons (list (cons var (var-names state))
@@ -47,10 +58,11 @@
                                   (state-top-layer state)
                                   (set-variable var (remove-state-layer state))))
       ((eq? var (car (var-names state))) (begin
-                                           (set-box! (car (var-values state)) value) state))
-      (else (add-variable (car (var-names state))
-                          (car (var-values state))
-                          (set-variable var value (pop-state-value state)))))))
+                                           (set-box! (car
+                                                      (var-values state)) value) state))
+      (else (push-state-value (car (var-names state))
+                              (car (var-values state))
+                              (set-variable var value (pop-state-value state)))))))
 
 
 ;; Takes a declaration expression and a state and returns the resulting state
@@ -62,50 +74,49 @@
       ((= (num-operands expression) 2) (add-variable (left-op expression)
                                                      (value (right-op expression) state)
                                                      state))
-      (else (add-variable (left-op expression) 'uninitialized (update-state
-                                                               (right-op expression) state break continue return throw))))))
+      (else (add-variable (left-op expression) 'uninitialized state)))))
 
 
 ;; Takes an assignment expression and a state and will return the updated state
 ;; There will be an error if the variable in the assignment statement has not been declared yet.
 (define assignment-state
   (lambda (expression state break continue return throw)
+    (assignment-state-helper expression state state break continue return throw)))
+
+;; This helper function keeps the full state from when assignment-state was called
+;; so that it can be used in the value function
+(define assignment-state-helper
+  (lambda (expression current-state full-state break continue return throw)
     (cond
-      ((null? state) (error 'undeclared_variable "Variable used before declared")) 
-      ((is-declared (left-op expression) (var-names state)) (set-variable (left-op expression)
-                                                                          (value (right-op expression) state)
-                                                                          state))
-      (else (push-state-layer (state-top-layer state)
-                              (assignment-state expression (remove-state-layer state) break continue return throw))))))
-
-
-;; State after a return expression
-;; Adds the result of the return to the state if there is not already a return
-(define return-state
-  (lambda (expression state break continue return throw)
-    (if (not (is-declared 'return (var-names state))) (add-variable 'return
-                                                                    (value (left-op expression) state)
-                                                                    state)
-    (state))))
-
+      ((null? current-state) (error 'undeclared_variable "Variable used before declared")) 
+      ((is-declared (left-op expression) (var-names current-state)) (set-variable (left-op expression)
+                                                                                  (value (right-op expression) full-state)
+                                                                                  current-state))
+      (else (push-state-layer (state-top-layer current-state)
+                              (assignment-state-helper expression (remove-state-layer current-state)
+                                                       full-state break continue return throw))))))
 
 ;; Takes an expression and a state, and if the left operand of the expression is true,
 ;; and recurse on the updated state after the right operand has been evaluated
 (define while-state
   (lambda (expression state break continue return throw)
-    (call/cc
-     (lambda (new-break)
-       (letrec
-           ((loop (lambda (condition body state)
-                    (if (value condition state)
-                        (loop condition body
-                                         (call/cc
-                                          (lambda (new-continue)
-                                            (update-state body state
-                                                          new-break new-continue
-                                                          return throw)))) state))))
-            (loop (left-op expression) (right-op expression) state))))))
+    (call/cc (lambda (new-break)
+              (while-state-helper
+               expression state new-break continue return throw)))))
 
+;; This helper function is used so that the above function
+;; can create a single new break continuation for the entire while loop
+(define while-state-helper
+  (lambda (expression state break continue return throw)
+    (if (value (left-op expression) state)
+        (while-state-helper expression
+                     (call/cc (lambda (new-continue)
+                                (update-state (right-op expression)
+                                              state
+                                              break new-continue
+                                              return throw)))
+                     break continue return throw)
+        state)))
 
 ;; Takes an expression and a state, and if the left operand evaluates as true,
 ;; evaluate the right operand and update the state accordingly. If the left operand
@@ -114,23 +125,66 @@
 (define if-state
   (lambda (expression state break continue return throw)
     (cond
-      ((value (left-op expression) state) (update-state (right-op expression) state break continue return throw))
-      ((eq? (num-operands expression) 3) (update-state (operand 3 expression) state break continue return throw))
+      ((value (left-op expression) state) (update-state (right-op expression)
+                                                        state break continue
+                                                        return throw))
+      ((eq? (num-operands expression) 3) (update-state (operand 3 expression)
+                                                       state break continue
+                                                       return throw))
       (else state))))
 
 
-;; Checks to see what components are in try-catch-finally section,
-;; and updates state on the blocks accordingly
+;; Takes expression, state, and continuations for a try block, then adjusts continuations as needed. To do so,
+;; a throw continuation is made, along with a try-catch-finally sequence, which is then evaluated.
 (define try-state
   (lambda (expression state break continue return throw)
-    (update-state (validate-finally-body expression) (update-state (validate-body expression) state break continue return
-                                                                   (lambda (e new-state) (update-state
-                                                                                          (validate-finally-body expression)
-                                                                                          (catch-state (validate-catch-body expression) e (get-error expression)
-                                                                                                       new-state break continue return throw)
-                                                                                          break continue return throw))) break continue return throw)))
+    (block-state (get-finally-block expression)
+                 (call/cc
+                  (lambda (new-throw)
+                    (catch-continuation
+                     (get-try-block expression)
+                     (get-catch-block expression)
+                     (get-catch-error expression)
+                     (push-state-layer init-layer state)
+                     break continue return new-throw throw)))
+                 init-layer
+                 break continue return throw)))
 
-;; State after a catch block
-(define catch-state
-  (lambda (expression error type state break continue return throw)
-    (update-state expression (add-variable type error state) break continue return throw)))
+
+;; Takes a try block, catch block and error, state, continuations, and evaluates the try block
+;; and the catch block if present
+(define catch-continuation
+  (lambda (try catch-block catch-error state break continue return new-throw old-throw)
+    (block-state try state init-layer break continue return
+                 (lambda (value throw-state)
+                   (new-throw
+                    (block-state catch-block
+                                 throw-state
+                                 (init-layer-value catch-error value)
+                                 break continue return old-throw))))))
+
+;; The block state takes a list of expressions, a layer, and a state
+;; The new layer is inseted onto the state, the expressions are executed,
+;; and the layer is removed when the block is exited
+(define block-state
+  (lambda (expression state layer break continue return throw)
+    (block-state-helper expression
+                        (push-state-layer layer state)
+                        (lambda (v) (break (remove-state-layer v)))
+                        (lambda (v) (continue (remove-state-layer v)))
+                        return
+                        (lambda (v s) (throw v (remove-state-layer s))))))
+
+;; Recursive part of block-state
+;; Used so that the layer can be added and all the continuations updated
+;; only once when the state is entered
+(define block-state-helper
+  (lambda (expression state break continue return throw)
+    (cond
+      ((null? expression) (remove-state-layer state))
+      (else (block-state-helper (cdr expression) (update-state
+                                           (car expression)
+                                           state break continue return throw)
+                         break continue return throw)))))
+
+

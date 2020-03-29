@@ -64,6 +64,19 @@
                               (car (var-values state))
                               (set-variable var value (pop-state-value state)))))))
 
+(define create-function-closure
+  (lambda (declaration state)
+    (cond
+      ((null? declaration) (list (create-function-environment (length state))))
+      ((eq? (car declaration) 'function) (create-function-closure (cdr declaration) state))
+      (else (cons (car declaration) (create-function-closure (cdr declaration) state))))))
+
+(define create-function-environment
+  (lambda (num-layers)
+    (lambda (state)
+      (if (eq? (length state) num-layers)
+          state
+          ((create-function-environment num-layers) (remove-state-layer state))))))
 
 ;; Takes a declaration expression and a state and returns the resulting state
 ;; This will return an error if the variable has already been declared

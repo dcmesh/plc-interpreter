@@ -218,6 +218,11 @@
     (if (var-in-state? function (caar env))
         env
         (push-state-empty-layer (get-correct-scope (cdr env) function)))))
+
+;; pushes a function to the given state
+(define push-state-function
+  (lambda (expression state)
+    (bind-to-state (cadr expression) (cddr expression) state)))
        
 
 ;;---------------------------------------------------------------

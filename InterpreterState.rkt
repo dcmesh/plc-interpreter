@@ -64,11 +64,14 @@
                               (car (var-values state))
                               (set-variable var value (pop-state-value state)))))))
 
+(define function-definition-state
+  (lambda (expression state)
+    (add-variable (left-op expression) (create-function-closure (cddr expression) state) state)))
+
 (define create-function-closure
   (lambda (declaration state)
     (cond
       ((null? declaration) (list (create-function-environment (length state))))
-      ((eq? (car declaration) 'function) (create-function-closure (cdr declaration) state))
       (else (cons (car declaration) (create-function-closure (cdr declaration) state))))))
 
 (define create-function-environment

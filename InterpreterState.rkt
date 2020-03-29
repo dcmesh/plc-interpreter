@@ -82,19 +82,19 @@
 ;; Pushes the parameters to the given environment. Also, takes care of out-of-scope variables by
 ;; replacing their layers with empty placeholders
 (define push-param-env
-  (lambda (function lis env break continue return throw)
+  (lambda (function-name lis env break continue return throw)
     (bind-params (init-state)
                  env
-                 (car (lookup-value function env))
-                 lis function break continue return throw)))
+                 (car (lookup-var-in-state function-name env))
+                 lis function-name break continue return throw)))
 
 
 ;; Adds the variables from the given list of parameters of a function to values passed in
 ;; from that function, updating the environment
 (define bind-params
-  (lambda (new-env old-env params lis function break continue return throw)
+  (lambda (new-env old-env params lis function-name break continue return throw)
     (cond
-      ((and (null? lis) (null? params)) (cons (car new-env) (get-correct-scope old-env function)))
+      ((and (null? lis) (null? params)) (cons (car new-env) (get-correct-scope old-env function-name)))
       ((or (null? lis) (null? params)) (error 'mismatched_Arguments "Incorrect amount of arugments encountered"))
       (else (bind-params
              (push-state-value (car params)
@@ -103,7 +103,7 @@
              old-env
              (cdr params)
              (cdr lis)
-             function break continue return throw)))))
+             function-name break continue return throw)))))
 
                                            
 ;; Takes a declaration expression and a state and returns the resulting state

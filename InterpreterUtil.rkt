@@ -22,6 +22,7 @@
 (provide is-atom)
 (provide lookup-value)
 (provide get-correct-scope)
+(provide lookup-var-in-state)
 
 ;;;---------------------------------------------------------
 ;;; Utility functions that will be needed in many files

@@ -109,6 +109,17 @@
              (cdr lis)
              function-name break continue return throw)))))
 
+(define eval-func-call
+  (lambda (expression state break continue return throw)
+    (call/cc
+     (lambda (return)
+       (remove-state-layer (interpret-statement-list (left-op (lookup-var-in-state (left-op expression) state))
+                                                     (push-param-env (left-op expression) (cddr expression) state break continue return throw)
+                                                     (lambda (env) (break (remove-state-layer env)))
+                                                     (lambda (env) (continue (remove-state-layer env)))
+                                                     return
+                                                     (lambda (e env) (throw e (remove-state-layer env)))))))))
+
 ;; -------------------- Idea 1 -------------------------------------------------------------------
 
 

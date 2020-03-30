@@ -1,5 +1,7 @@
 #lang racket
 (provide update-state)
+(provide declare-state)
+(provide function-definition-state)
 (require "InterpreterUtil.rkt")
 (require "InterpreterValue.rkt")
 
@@ -18,8 +20,7 @@
       ((is-atom expression) state)
       ((eq? (operator expression) 'return) (return
                                             (value (left-op expression) state)))
-      ((eq? (operator expression) 'var) (declare-state
-                                         expression state break continue return throw))
+      ((eq? (operator expression) 'var) (declare-state expression state))
       ((eq? (operator expression) '=) (assignment-state
                                        expression state break continue return throw))
       ((eq? (operator expression) 'while) (while-state
@@ -147,7 +148,7 @@
 ;; Takes a declaration expression and a state and returns the resulting state
 ;; This will return an error if the variable has already been declared
 (define declare-state
-  (lambda (expression state break continue return throw)
+  (lambda (expression state)
     (cond
       ((is-declared (left-op expression) (var-names state)) (error 'redefined_variable "variable is redefined"))
       ((= (num-operands expression) 2) (add-variable (left-op expression)

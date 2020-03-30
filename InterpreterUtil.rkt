@@ -21,7 +21,6 @@
 (provide is-declared)
 (provide is-atom)
 (provide lookup-value)
-(provide get-correct-scope)
 (provide lookup-var-in-state)
 (provide bind-to-layer)
 
@@ -207,25 +206,6 @@
 (define lookup-value
   (lambda (var state)
     (unbox (get-box-state var state))))
-
-;; pushes an empty layer to the given state
-(define push-state-empty-layer
-  (lambda (state)
-    (cons (init-layer) state)))
-
-;; Navigates to the correct dynamic-scoping environment for the given function
-(define get-correct-scope
-  (lambda (env function)
-    (if (var-in-state? function (caar env))
-        env
-        (push-state-empty-layer (get-correct-scope (cdr env) function)))))
-
-;; pushes a function to the given state
-(define push-state-function
-  (lambda (expression state)
-    (bind-to-state (cadr expression) (cddr expression) state)))
-
-
 
 
 ;;---------------------------------------------------------------

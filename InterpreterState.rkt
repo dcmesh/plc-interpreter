@@ -82,48 +82,8 @@
           state
           ((create-function-environment num-layers) (remove-state-layer state))))))
 
-;; -------------------- Idea 1 -------------------------------------------------------------------
-;; Pushes the parameters to the given environment. Also, takes care of out-of-scope variables by
-;; replacing their layers with empty placeholders
-(define push-param-env
-  (lambda (function-name lis env break continue return throw)
-    (bind-params (init-state)
-                 env
-                 (car (lookup-var-in-state function-name env))
-                 lis function-name break continue return throw)))
 
-
-;; Adds the variables from the given list of parameters of a function to values passed in
-;; from that function, updating the environment
-(define bind-params
-  (lambda (new-env old-env params lis function-name break continue return throw)
-    (cond
-      ((and (null? lis) (null? params)) (cons (car new-env) (get-correct-scope old-env function-name)))
-      ((or (null? lis) (null? params)) (error 'mismatched_Arguments "Incorrect amount of arugments encountered"))
-      (else (bind-params
-             (push-state-value (car params)
-                               (value (car lis) old-env)
-                               new-env)
-             old-env
-             (cdr params)
-             (cdr lis)
-             function-name break continue return throw)))))
-
-(define eval-func-call
-  (lambda (expression state break continue return throw)
-    (call/cc
-     (lambda (return)
-       (remove-state-layer (interpret-statement-list (left-op (lookup-var-in-state (left-op expression) state))
-                                                     (push-param-env (left-op expression) (cddr expression) state break continue return throw)
-                                                     (lambda (env) (break (remove-state-layer env)))
-                                                     (lambda (env) (continue (remove-state-layer env)))
-                                                     return
-                                                     (lambda (e env) (throw e (remove-state-layer env)))))))))
-
-;; -------------------- Idea 1 -------------------------------------------------------------------
-
-
-;; -------------------- Idea 2 -------------------------------------------------------------------
+;; -------------------- Idea for Closure -------------------------------------------------------------------
 ;; interprets a list of statements.  The environment from each statement is used for the next ones.
 (define interpret-statement-list
   (lambda (statement-list environment break continue return throw)
@@ -153,7 +113,7 @@
        (lambda (new-return)
          (interpret-statement-list (cadr closure) new-state break continue new-return throw))))))
 
-;; -------------------- Idea 2 -------------------------------------------------------------------
+;; -------------------- Idea for Closure -------------------------------------------------------------------
 
                                            
 ;; Takes a declaration expression and a state and returns the resulting state

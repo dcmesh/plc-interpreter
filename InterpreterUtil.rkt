@@ -23,6 +23,7 @@
 (provide lookup-value)
 (provide get-correct-scope)
 (provide lookup-var-in-state)
+(provide bind-to-layer)
 
 ;;;---------------------------------------------------------
 ;;; Utility functions that will be needed in many files
@@ -223,7 +224,9 @@
 (define push-state-function
   (lambda (expression state)
     (bind-to-state (cadr expression) (cddr expression) state)))
-       
+
+
+
 
 ;;---------------------------------------------------------------
 ;;---------------------------------------------------------------

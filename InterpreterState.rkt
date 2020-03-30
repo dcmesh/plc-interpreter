@@ -81,7 +81,7 @@
           state
           ((create-function-environment num-layers) (remove-state-layer state))))))
 
-
+;; -------------------- Idea 1 -------------------------------------------------------------------
 ;; Pushes the parameters to the given environment. Also, takes care of out-of-scope variables by
 ;; replacing their layers with empty placeholders
 (define push-param-env
@@ -107,6 +107,41 @@
              (cdr params)
              (cdr lis)
              function-name break continue return throw)))))
+
+;; -------------------- Idea 1 -------------------------------------------------------------------
+
+
+;; -------------------- Idea 2 -------------------------------------------------------------------
+;; interprets a list of statements.  The environment from each statement is used for the next ones.
+(define interpret-statement-list
+  (lambda (statement-list environment break continue return throw)
+    (if (null? statement-list)
+        environment
+        (interpret-statement-list (cdr statement-list) (update-state (car statement-list) environment break continue return throw) break continue return throw))))
+
+;; creates a new layer with the provided params
+(define add-params-layer
+  (lambda (formal actual state break continue return throw)
+    (cond
+      ((and (null? formal) (null? actual)) (init-layer))
+      ((or (null? formal) (null? actual)) (error 'mismatched_Arguments "Incorrect amount of arugments encountered"))
+      (else (bind-to-layer (car formal) (box
+                                         (value (car actual) state break continue return throw))
+                           (add-params-layer (cdr formal)
+                                             (cdr actual)
+                                             state break continue return throw))))))
+
+                                         
+(define eval-function-call
+  (lambda (expression state break continue return throw)
+    (let* ((closure (lookup-value (cadr expression) state))
+           (outer-env ((caddr closure) state))
+           (new-state (cons (add-params-layer (car closure) (cddr expression) state break continue return throw) outer-env)))
+      (call/cc
+       (lambda (new-return)
+         (interpret-statement-list (cadr closure) new-state break continue new-return throw))))))
+
+;; -------------------- Idea 2 -------------------------------------------------------------------
 
                                            
 ;; Takes a declaration expression and a state and returns the resulting state

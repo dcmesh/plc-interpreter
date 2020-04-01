@@ -99,8 +99,8 @@
 (define add-params-layer
   (lambda (formal actual state break continue return throw)
     (cond
-      ((and (null? formal) (null? actual)) init-layer)
-      ((or (null? formal) (null? actual)) (error 'mismatched_Arguments "Incorrect amount of arugments encountered"))
+      ((and (null? formal) (null? (car actual))) init-layer)
+      ((or (null? formal) (null? (car actual))) (error 'mismatched_Arguments "Incorrect amount of arugments encountered"))
       (else (bind-to-layer (car formal) (box
                                          (value (car actual) state))
                            (add-params-layer (cdr formal)

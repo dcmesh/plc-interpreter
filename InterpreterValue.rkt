@@ -44,6 +44,7 @@
       ((null? expression) (error 'parser "parser should have caught this"))
       ((eq? '- (operator expression)) (- (value (left-op expression) state)))
       ((eq? '! (operator expression)) (not (value (left-op expression) state)))
+      ((eq? 'funcall (operator expression)) (function-value expression state))
       (else (error 'badop "The operator is not known, or type mismatch")))))
 
 
@@ -93,4 +94,11 @@
       ((eq? '|| (operator expression)) (or
                                         (eq? (value (left-op expression) state) #t)
                                         (eq? (value (right-op expression) state) #t)))
+      ((eq? (operator expression) 'funcall) (function-value expression state))
       (else (error 'badop "The operator is not known, or type mismatch")))))
+
+(define function-value
+  (lambda (expression state)
+    (value (cdr state) state)))
+
+    

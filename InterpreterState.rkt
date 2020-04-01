@@ -2,6 +2,7 @@
 (provide update-state)
 (provide declare-state)
 (provide function-definition-state)
+(provide eval-function-call)
 (require "InterpreterUtil.rkt")
 (require "InterpreterValue.rkt")
 
@@ -37,9 +38,7 @@
                                            (cdr expression)
                                            state init-layer
                                            break continue return throw))
-      ((eq? (operator expression) 'function) (if (eq? (cadr expression) 'main)
-                                                 (return (eval-function-call expression state break continue return throw))
-                                                 (function-definition-state expression state)))
+      ((eq? (operator expression) 'function) (function-definition-state expression state))
       ((eq? (operator expression) 'funcall) (return (eval-function-call expression state break continue return throw)))
       (else (error "Unexpected expression")))))
 
@@ -102,7 +101,7 @@
       ((and (null? formal) (null? (car actual))) init-layer)
       ((or (null? formal) (null? (car actual))) (error 'mismatched_Arguments "Incorrect amount of arugments encountered"))
       (else (bind-to-layer (car formal) (box
-                                         (value (car actual) state))
+                                         (value (caar actual) state))
                            (add-params-layer (cdr formal)
                                              (cdr actual)
                                              state break continue return throw))))))

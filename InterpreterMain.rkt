@@ -19,12 +19,13 @@
     (sanitize-return
      (call/cc
       (lambda (return)
-        (run (parser file)
-             (run-first-pass (parser file) init-state)
-             (lambda (v) (error "Error: Invalid break encountered."))
-             (lambda (v) ("Error: Invalid continue encountered."))
-             return
-             (lambda (v s) (error "Error: Uncaught Exception"))))))))
+        (eval-function-call
+         '(funcall main ())
+         (run-first-pass (parser file) init-state)
+         (lambda (v) (error "Error: Invalid break encountered."))
+         (lambda (v) ("Error: Invalid continue encountered."))
+         return
+         (lambda (v s) (error "Error: Uncaught Exception"))))))))
 
 ;; First pass to find all function declarations in a program
 (define run-first-pass

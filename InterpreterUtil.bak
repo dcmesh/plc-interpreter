@@ -151,7 +151,7 @@
     (cond
       ((empty-layer? layer) 'undeclared)
       ((eq? var (first-var layer)) (first-value layer))
-      (else (lookup-var-in-layer var (remaining-bindings layer))))))
+      (else (lookup-var-in-layer (remaining-bindings layer))))))
 
 ;; checks if a variable is in a given layer
 (define var-in-layer?

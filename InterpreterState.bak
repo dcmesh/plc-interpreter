@@ -37,10 +37,6 @@
                                            (cdr expression)
                                            state init-layer
                                            break continue return throw))
-      ((eq? (operator expression) 'function) (if (eq? (cadr expression) 'main)
-                                                 (return (eval-function-call expression state break continue return throw))
-                                                 (function-definition-state expression state)))
-      ((eq? (operator expression) 'funcall) (return (eval-function-call expression state break continue return throw)))
       (else (error "Unexpected expression")))))
 
 

@@ -20,7 +20,7 @@
      (call/cc
       (lambda (return)
         (run (parser file)
-             (run-first-pass (parser file) init-state)
+             (run-first-pass init-state)
              (lambda (v) (error "Error: Invalid break encountered."))
              (lambda (v) ("Error: Invalid continue encountered."))
              return

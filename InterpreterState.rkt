@@ -29,7 +29,7 @@
                                         expression state break continue return throw))
       ((eq? (operator expression) 'break) (break state))
       ((eq? (operator expression) 'throw) (throw
-                                           (value (left-op expression) state throw) state))
+                                           (value (left-op expression) state throw)))
       ((eq? (operator expression) 'try) (try-state
                                          expression state break continue return throw))
       ((eq? (operator expression) 'continue) (continue state))
@@ -213,10 +213,10 @@
 (define catch-continuation
   (lambda (try catch-block catch-error state break continue return new-throw old-throw)
     (block-state try state init-layer break continue return
-                 (lambda (value throw-state)
+                 (lambda (value)
                    (new-throw
                     (block-state catch-block
-                                 throw-state
+                                 state
                                  (init-layer-value catch-error value)
                                  break continue return old-throw))))))
 
@@ -230,7 +230,7 @@
                         (lambda (v) (break (remove-state-layer v)))
                         (lambda (v) (continue (remove-state-layer v)))
                         return
-                        (lambda (v s) (throw v (remove-state-layer s))))))
+                        (lambda (v) (throw v)))))
 
 ;; Recursive part of block-state
 ;; Used so that the layer can be added and all the continuations updated

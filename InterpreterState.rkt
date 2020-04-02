@@ -112,7 +112,7 @@
   (lambda (formal actual state throw)
     (cond
       ((and (null? formal) (null? actual)) init-layer)
-      ((or (null? formal) (null? actual)) (error 'mismatched_Arguments "Incorrect amount of arugments encountered"))
+      ((or (null? formal) (null? actual)) (error 'mismatched_Arguments "Incorrect amount of arguments encountered"))
       (else (bind-to-layer (car formal) (box
                                          (value (car actual) state throw))
                            (add-params-layer (cdr formal)

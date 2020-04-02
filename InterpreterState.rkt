@@ -29,7 +29,7 @@
                                         expression state break continue return throw))
       ((eq? (operator expression) 'break) (break state))
       ((eq? (operator expression) 'throw) (throw
-                                           (value (left-op expression) state) state throw))
+                                           (value (left-op expression) state throw) state))
       ((eq? (operator expression) 'try) (try-state
                                          expression state break continue return throw))
       ((eq? (operator expression) 'continue) (continue state))

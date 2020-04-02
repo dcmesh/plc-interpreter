@@ -27,6 +27,9 @@
 (provide lookup-value)
 (provide lookup-var-in-state)
 (provide bind-to-layer)
+(provide closure-environment-creator)
+(provide closure-formal-params)
+(provide closure-function-body)
 
 
 
@@ -172,6 +175,9 @@
 (define rest-value cdadr)
 (define first-layer car)
 (define rest-layer cdr)
+(define closure-environment-creator caddr)
+(define closure-function-body cadr)
+(define closure-formal-params car)
 
 ;; checks if a given layer is empty
 (define empty-layer?
@@ -214,23 +220,6 @@
 (define var-in-state?
   (lambda (var state)
     (not (eq? (lookup-var-in-state var state) 'undeclared))))
-
-;; binds a variable-value pair, adds it to the given state
-(define bind-to-state
-  (lambda (var value state)
-    (cond
-      ((var-in-layer? var (first-layer state)) (error
-                                                'peviously-Declared-Variable "Variable has already been declared"))
-      (else (cons (bind-to-layer var (box value)
-                                 (first-layer state)) (rest-layer state))))))
-
-;; gets the layer of the environment for the function being called
-(define get-function-layers
-  (lambda (function-name state)
-    (cond
-      ((null? state) (error 'undefined-Function "Function is undefined"))
-      ((var-in-layer? function-name (first-layer state)) state)
-      (else (get-function-layers function-name (rest-layer state))))))
 
 ;; gets the box of a given variable in a state
 (define get-box-state

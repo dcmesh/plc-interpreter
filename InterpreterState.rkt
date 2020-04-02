@@ -259,6 +259,7 @@
       ((eq? 'true expression) #t)
       ((eq? 'false expression) #f)
       ((not (pair? expression)) (variable-value expression state))
+      ((eq? (operator expression) 'funcall) (eval-function-call expression state throw))
       ((eq? (num-operands expression) 1) (expr-one-op-val expression state throw))
       (else (expr-two-op-val expression state throw)))))
 
@@ -335,7 +336,6 @@
       ((eq? '|| (operator expression)) (or
                                         (eq? (value (left-op expression) state throw) #t)
                                         (eq? (value (right-op expression) state throw) #t)))
-      ((eq? (operator expression) 'funcall) (eval-function-call expression state throw))
       (else (error 'badop "The operator is not known, or type mismatch")))))
 
 

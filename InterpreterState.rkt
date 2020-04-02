@@ -76,16 +76,19 @@
 ;;; -------------------- This section deals with functions in the state --------------------
 
 
+;; Takes a function and places its definition into the state
 (define function-definition-state
   (lambda (expression state)
     (add-variable (left-op expression) (create-function-closure (cddr expression) state) state)))
 
+;; Creates a closure for a given function declaration and state
 (define create-function-closure
   (lambda (declaration state)
     (cond
       ((null? declaration) (list (create-function-environment (length state))))
       (else (cons (car declaration) (create-function-closure (cdr declaration) state))))))
 
+;; Creates the correct environment for a function given the current state
 (define create-function-environment
   (lambda (num-layers)
     (lambda (state)

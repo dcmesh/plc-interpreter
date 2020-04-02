@@ -1,4 +1,5 @@
 #lang racket
+
 (provide update-state)
 (provide declare-state)
 (provide function-definition-state)
@@ -6,9 +7,9 @@
 (require "InterpreterUtil.rkt")
 
 
-;;;---------------------------------------------------------
-;;; Functions that take a state and return an updated state
-;;;---------------------------------------------------------
+;;;;---------------------------------------------------------------------------
+;;;; Functions that take a state and return an updated state
+;;;;---------------------------------------------------------------------------
 
 
 ;; Takes any expression and the current state and returns and updated state.
@@ -38,8 +39,13 @@
                                            state init-layer
                                            break continue return throw))
       ((eq? (operator expression) 'function) (function-definition-state expression state))
-      ((eq? (operator expression) 'funcall) (begin (eval-function-call expression state throw)) state)
+      ((eq? (operator expression) 'funcall) (begin
+                                              (eval-function-call expression state throw))
+                                            state)
       (else (error "Unexpected expression")))))
+
+
+;;; -------------------- This section deals with variables in the state --------------------
 
 
 ;; Takes a variable name var a value for the variable and the current state
@@ -49,7 +55,6 @@
     (cons (list (cons var (var-names state))
                 (cons (box value) (var-values state)))
           (remove-state-layer state))))
-
 
 ;; Takes a variable name var, an update value, and the current state
 ;; Returns a state that is state with the value of the variable with name var updated to value
@@ -66,6 +71,10 @@
       (else (push-state-value (car (var-names state))
                               (car (var-values state))
                               (set-variable var value (pop-state-value state)))))))
+
+
+;;; -------------------- This section deals with functions in the state --------------------
+
 
 (define function-definition-state
   (lambda (expression state)
@@ -84,14 +93,15 @@
           state
           ((create-function-environment num-layers) (remove-state-layer state))))))
 
-
-;; -------------------- Idea for Closure -------------------------------------------------------------------
 ;; interprets a list of statements.  The environment from each statement is used for the next ones.
 (define interpret-statement-list
   (lambda (statement-list environment break continue return throw)
     (if (null? statement-list)
         environment
-        (interpret-statement-list (cdr statement-list) (update-state (car statement-list) environment break continue return throw) break continue return throw))))
+        (interpret-statement-list (cdr statement-list)
+                                  (update-state (car statement-list)
+                                                environment break continue return throw)
+                                  break continue return throw))))
 
 ;; creates a new layer with the provided params
 (define add-params-layer
@@ -105,12 +115,13 @@
                                              (cdr actual)
                                              state throw))))))
 
-                                         
+;; Evaluates a function call value in the given expression                                        
 (define eval-function-call
   (lambda (expression state throw)
     (let* ((closure (lookup-value (cadr expression) state))
            (outer-env ((caddr closure) state))
-           (new-state (cons (add-params-layer (car closure) (cddr expression) state throw) outer-env)))
+           (new-state (cons (add-params-layer (car closure) (cddr expression) state throw)
+                            outer-env)))
       (call/cc
        (lambda (new-return)
          (interpret-statement-list (cadr closure) new-state
@@ -119,9 +130,10 @@
                                             new-return
                                             throw))))))
 
-;; -------------------- Idea for Closure -------------------------------------------------------------------
 
-                                           
+;;; -------------------- This section deals with general state updates --------------------
+
+
 ;; Takes a declaration expression and a state and returns the resulting state
 ;; This will return an error if the variable has already been declared
 (define declare-state
@@ -132,7 +144,6 @@
                                                      (value (right-op expression) state throw)
                                                      state))
       (else (add-variable (left-op expression) 'uninitialized state)))))
-
 
 ;; Takes an assignment expression and a state and will return the updated state
 ;; There will be an error if the variable in the assignment statement has not been declared yet.
@@ -191,6 +202,9 @@
       (else state))))
 
 
+;;; -------------------- This section deals with try/catch --------------------
+
+
 ;; Takes expression, state, and continuations for a try block, then adjusts continuations as needed. To do so,
 ;; a throw continuation is made, along with a try-catch-finally sequence, which is then evaluated.
 (define try-state
@@ -207,7 +221,6 @@
                  init-layer
                  break continue return throw)))
 
-
 ;; Takes a try block, catch block and error, state, continuations, and evaluates the try block
 ;; and the catch block if present
 (define catch-continuation
@@ -219,6 +232,10 @@
                                  state
                                  (init-layer-value catch-error value)
                                  break continue return old-throw))))))
+
+
+;;; -------------------- This section deals with blocks --------------------
+
 
 ;; The block state takes a list of expressions, a layer, and a state
 ;; The new layer is inseted onto the state, the expressions are executed,
@@ -245,9 +262,7 @@
                          break continue return throw)))))
 
 
-;;;---------------------------------------------------------
-;;; Functions for parsing expressions for values or booleans
-;;;---------------------------------------------------------
+;;; -------------------- This section deals with determining the value of an expression --------------------
 
 
 ;; Function that finds right function to interpret the value
@@ -263,7 +278,6 @@
       ((eq? (num-operands expression) 1) (expr-one-op-val expression state throw))
       (else (expr-two-op-val expression state throw)))))
 
-
 ;; Value of a variable
 ;; The variable must have been initialized previously or the function will result in an error
 (define variable-value
@@ -277,7 +291,6 @@
            (unbox (car (var-values state)))))
       (else (variable-value name (pop-state-value state))))))
 
-
 ;; The value of an operation that has only one operand
 ;; If the expression does not have a numerical variable the result will
 ;; be the expression parsed as a boolean
@@ -288,7 +301,6 @@
       ((eq? '- (operator expression)) (- (value (left-op expression) state throw)))
       ((eq? '! (operator expression)) (not (value (left-op expression) state throw)))
       (else (error 'badop "The operator is not known, or type mismatch")))))
-
 
 ;; The numerical or boolean value of an operation that has two operands
 ;; If the expression does not have a numerical variable the result will

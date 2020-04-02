@@ -1,14 +1,16 @@
 #lang racket
-;;(require "simpleParser.rkt")
+
 (require "functionParser.rkt")
 (require "InterpreterState.rkt")
 (require "InterpreterUtil.rkt")
 
 
+
 ;;;----------------------------------------------------------------------------------
-;;; Interpreter Assignment 2 for EECS 345
+;;; Interpreter Assignment 3 for EECS 345
 ;;; Group 30: David Meshnick (dcm101), Austin Keppers (agk51), Trey Starshak (mjs386)
 ;;;----------------------------------------------------------------------------------
+
 
 
 ;; Function to interpret a program contained in a file
@@ -26,8 +28,14 @@
   (lambda (program state)
     (cond
       ((null? program) state)
-      ((eq? (operator (car program)) 'var) (run-first-pass (cdr program) (declare-state (car program) state (lambda (v s) (error "Error: Uncaught Exception")))))
-      ((eq? (operator (car program)) 'function) (run-first-pass (cdr program) (function-definition-state (car program) state)))
+      ((eq? (operator (car program)) 'var) (run-first-pass
+                                            (cdr program)
+                                            (declare-state (car program) state
+                                                           (lambda (v s)
+                                                             (error "Error: Uncaught Exception")))))
+      ((eq? (operator (car program)) 'function) (run-first-pass
+                                                 (cdr program)
+                                                 (function-definition-state (car program) state)))
       (else (error "Unexpected expression")))))
 
 ;; Sequentially executes the statements in a program

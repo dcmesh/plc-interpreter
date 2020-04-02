@@ -38,7 +38,7 @@
                                            state init-layer
                                            break continue return throw))
       ((eq? (operator expression) 'function) (function-definition-state expression state))
-      ((eq? (operator expression) 'funcall) (return (eval-function-call expression state throw)))
+      ((eq? (operator expression) 'funcall) (begin (eval-function-call expression state throw)) state)
       (else (error "Unexpected expression")))))
 
 

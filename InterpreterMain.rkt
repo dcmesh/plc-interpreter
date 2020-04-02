@@ -2,7 +2,6 @@
 ;;(require "simpleParser.rkt")
 (require "functionParser.rkt")
 (require "InterpreterState.rkt")
-(require "InterpreterValue.rkt")
 (require "InterpreterUtil.rkt")
 
 
@@ -17,21 +16,17 @@
 (define interpret
   (lambda (file)
     (sanitize-return
-     (call/cc
-      (lambda (return)
-        (run (parser file)
-             (run-first-pass (parser file) init-state)
-             (lambda (v) (error "Error: Invalid break encountered."))
-             (lambda (v) ("Error: Invalid continue encountered."))
-             return
-             (lambda (v s) (error "Error: Uncaught Exception"))))))))
+     (eval-function-call
+      '(funcall main)
+      (run-first-pass (parser file) init-state)
+      (lambda (v) (error "Error: Uncaught Exception"))))))
 
 ;; First pass to find all function declarations in a program
 (define run-first-pass
   (lambda (program state)
     (cond
       ((null? program) state)
-      ((eq? (operator (car program)) 'var) (run-first-pass (cdr program) (declare-state (car program) state)))
+      ((eq? (operator (car program)) 'var) (run-first-pass (cdr program) (declare-state (car program) state (lambda (v s) (error "Error: Uncaught Exception")))))
       ((eq? (operator (car program)) 'function) (run-first-pass (cdr program) (function-definition-state (car program) state)))
       (else (error "Unexpected expression")))))
 

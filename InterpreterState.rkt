@@ -2,8 +2,8 @@
 (provide update-state)
 (provide declare-state)
 (provide function-definition-state)
+(provide eval-function-call)
 (require "InterpreterUtil.rkt")
-(require "InterpreterValue.rkt")
 
 
 ;;;---------------------------------------------------------
@@ -18,10 +18,9 @@
     (cond
       ((null? expression) state)
       ((is-atom expression) state)
-      ((eq? (operator expression) 'return) (if (eq? (car (left-op expression)) 'funcall)
-                                               (return (eval-function-call (left-op expression) state break continue return throw))
-                                               (return (value (left-op expression) state return))))
-      ((eq? (operator expression) 'var) (declare-state expression state))
+      ((eq? (operator expression) 'return) (return
+                                            (value (left-op expression) state throw)))
+      ((eq? (operator expression) 'var) (declare-state expression state throw))
       ((eq? (operator expression) '=) (assignment-state
                                        expression state break continue return throw))
       ((eq? (operator expression) 'while) (while-state
@@ -30,7 +29,7 @@
                                         expression state break continue return throw))
       ((eq? (operator expression) 'break) (break state))
       ((eq? (operator expression) 'throw) (throw
-                                           (value (left-op expression) state return) state))
+                                           (value (left-op expression) state throw)))
       ((eq? (operator expression) 'try) (try-state
                                          expression state break continue return throw))
       ((eq? (operator expression) 'continue) (continue state))
@@ -38,10 +37,8 @@
                                            (cdr expression)
                                            state init-layer
                                            break continue return throw))
-      ((eq? (operator expression) 'function) (if (eq? (cadr expression) 'main)
-                                                 (return (eval-function-call expression state break continue return throw))
-                                                 (function-definition-state expression state)))
-      ((eq? (operator expression) 'funcall) (eval-function-call expression state break continue return throw))
+      ((eq? (operator expression) 'function) (function-definition-state expression state))
+      ((eq? (operator expression) 'funcall) (begin (eval-function-call expression state throw)) state)
       (else (error "Unexpected expression")))))
 
 
@@ -98,25 +95,29 @@
 
 ;; creates a new layer with the provided params
 (define add-params-layer
-  (lambda (formal actual state break continue return throw)
+  (lambda (formal actual state throw)
     (cond
-      ((and (null? formal) (null? (car actual))) init-layer)
-      ((or (null? formal) (null? (car actual))) (error 'mismatched_Arguments "Incorrect amount of arugments encountered"))
+      ((and (null? formal) (null? actual)) init-layer)
+      ((or (null? formal) (null? actual)) (error 'mismatched_Arguments "Incorrect amount of arugments encountered"))
       (else (bind-to-layer (car formal) (box
-                                         (value (car actual) state return))
+                                         (value (car actual) state throw))
                            (add-params-layer (cdr formal)
                                              (cdr actual)
-                                             state break continue return throw))))))
+                                             state throw))))))
 
                                          
 (define eval-function-call
-  (lambda (expression state break continue return throw)
+  (lambda (expression state throw)
     (let* ((closure (lookup-value (cadr expression) state))
            (outer-env ((caddr closure) state))
-           (new-state (cons (add-params-layer (car closure) (cddr expression) state break continue return throw) outer-env)))
+           (new-state (cons (add-params-layer (car closure) (cddr expression) state throw) outer-env)))
       (call/cc
        (lambda (new-return)
-         (interpret-statement-list (cadr closure) new-state break continue new-return throw))))))
+         (interpret-statement-list (cadr closure) new-state
+                                            (lambda (v) (error "Error: Invalid break encountered."))
+                                            (lambda (v) ("Error: Invalid continue encountered."))
+                                            new-return
+                                            throw))))))
 
 ;; -------------------- Idea for Closure -------------------------------------------------------------------
 
@@ -124,11 +125,11 @@
 ;; Takes a declaration expression and a state and returns the resulting state
 ;; This will return an error if the variable has already been declared
 (define declare-state
-  (lambda (expression state)
+  (lambda (expression state throw)
     (cond
       ((is-declared (left-op expression) (var-names state)) (error 'redefined_variable "variable is redefined"))
       ((= (num-operands expression) 2) (add-variable (left-op expression)
-                                                     (value (right-op expression) state '())
+                                                     (value (right-op expression) state throw)
                                                      state))
       (else (add-variable (left-op expression) 'uninitialized state)))))
 
@@ -146,7 +147,7 @@
     (cond
       ((null? current-state) (error 'undeclared_variable "Variable used before declared")) 
       ((is-declared (left-op expression) (var-names current-state)) (set-variable (left-op expression)
-                                                                                  (value (right-op expression) full-state return)
+                                                                                  (value (right-op expression) full-state throw)
                                                                                   current-state))
       (else (push-state-layer (state-top-layer current-state)
                               (assignment-state-helper expression (remove-state-layer current-state)
@@ -164,7 +165,7 @@
 ;; can create a single new break continuation for the entire while loop
 (define while-state-helper
   (lambda (expression state break continue return throw)
-    (if (value (left-op expression) state return)
+    (if (value (left-op expression) state throw)
         (while-state-helper expression
                      (call/cc (lambda (new-continue)
                                 (update-state (right-op expression)
@@ -181,7 +182,7 @@
 (define if-state
   (lambda (expression state break continue return throw)
     (cond
-      ((value (left-op expression) state return) (update-state (right-op expression)
+      ((value (left-op expression) state throw) (update-state (right-op expression)
                                                         state break continue
                                                         return throw))
       ((eq? (num-operands expression) 3) (update-state (operand 3 expression)
@@ -212,10 +213,10 @@
 (define catch-continuation
   (lambda (try catch-block catch-error state break continue return new-throw old-throw)
     (block-state try state init-layer break continue return
-                 (lambda (value throw-state return)
+                 (lambda (value)
                    (new-throw
                     (block-state catch-block
-                                 throw-state
+                                 state
                                  (init-layer-value catch-error value)
                                  break continue return old-throw))))))
 
@@ -229,7 +230,7 @@
                         (lambda (v) (break (remove-state-layer v)))
                         (lambda (v) (continue (remove-state-layer v)))
                         return
-                        (lambda (v s) (throw v (remove-state-layer s))))))
+                        (lambda (v) (throw v)))))
 
 ;; Recursive part of block-state
 ;; Used so that the layer can be added and all the continuations updated
@@ -242,5 +243,99 @@
                                            (car expression)
                                            state break continue return throw)
                          break continue return throw)))))
+
+
+;;;---------------------------------------------------------
+;;; Functions for parsing expressions for values or booleans
+;;;---------------------------------------------------------
+
+
+;; Function that finds right function to interpret the value
+;; Takes an expression and a state and uses the state to evaluate the expression
+(define value
+  (lambda (expression state throw)
+    (cond
+      ((number? expression) expression)
+      ((eq? 'true expression) #t)
+      ((eq? 'false expression) #f)
+      ((not (pair? expression)) (variable-value expression state))
+      ((eq? (operator expression) 'funcall) (eval-function-call expression state throw))
+      ((eq? (num-operands expression) 1) (expr-one-op-val expression state throw))
+      (else (expr-two-op-val expression state throw)))))
+
+
+;; Value of a variable
+;; The variable must have been initialized previously or the function will result in an error
+(define variable-value
+  (lambda (name state)
+    (cond
+      ((null? state) (error 'undeclared_variable "variable has not been declared")) ; Variable is undeclared if var-names is null
+      ((null? (var-names state)) (variable-value name (remove-state-layer state)))
+      ((eq? name (car (var-names state)))
+       (if (eq? (unbox (car (var-values state))) 'uninitialized)
+           (error 'uninitialized_variable "variable has not been initialized before use") ; Check if variable has been initialized before reeturning
+           (unbox (car (var-values state)))))
+      (else (variable-value name (pop-state-value state))))))
+
+
+;; The value of an operation that has only one operand
+;; If the expression does not have a numerical variable the result will
+;; be the expression parsed as a boolean
+(define expr-one-op-val
+  (lambda (expression state throw)
+    (cond
+      ((null? expression) (error 'parser "parser should have caught this"))
+      ((eq? '- (operator expression)) (- (value (left-op expression) state throw)))
+      ((eq? '! (operator expression)) (not (value (left-op expression) state throw)))
+      (else (error 'badop "The operator is not known, or type mismatch")))))
+
+
+;; The numerical or boolean value of an operation that has two operands
+;; If the expression does not have a numerical variable the result will
+;; be the expression parsed as a boolean
+(define expr-two-op-val
+  (lambda (expression state throw)
+    (cond
+      ((null? expression) (error 'parser "parser should have caught this"))
+      ((eq? '+ (operator expression)) (+
+                                       (value (left-op expression) state throw)
+                                       (value (right-op expression) state throw)))
+      ((eq? '* (operator expression)) (*
+                                       (value (left-op expression) state throw)
+                                       (value (right-op expression) state throw)))
+      ((eq? '- (operator expression)) (-
+                                       (value (left-op expression) state throw)
+                                       (value (right-op expression) state throw)))
+      ((eq? '/ (operator expression)) (quotient
+                                       (value (left-op expression) state throw)
+                                       (value (right-op expression) state throw)))
+      ((eq? '% (operator expression)) (modulo
+                                       (value (left-op expression) state throw)
+                                       (value (right-op expression) state throw)))
+      ((eq? '== (operator expression)) (eq?
+                                        (value (left-op expression) state throw)
+                                        (value (right-op expression) state throw)))
+      ((eq? '!= (operator expression)) (not (eq?
+                                             (value (left-op expression) state throw)
+                                             (value (right-op expression) state throw))))
+      ((eq? '> (operator expression)) (>
+                                       (value (left-op expression) state throw)
+                                       (value (right-op expression) state throw)))
+      ((eq? '< (operator expression)) (<
+                                       (value (left-op expression) state throw)
+                                       (value (right-op expression) state throw)))
+      ((eq? '<= (operator expression)) (<=
+                                        (value (left-op expression) state throw)
+                                        (value (right-op expression) state throw)))
+      ((eq? '>= (operator expression)) (>=
+                                        (value (left-op expression) state throw)
+                                        (value (right-op expression) state throw)))
+      ((eq? '&& (operator expression)) (and
+                                        (eq? (value (left-op expression) state throw) #t)
+                                        (eq? (value (right-op expression) state throw) #t)))
+      ((eq? '|| (operator expression)) (or
+                                        (eq? (value (left-op expression) state throw) #t)
+                                        (eq? (value (right-op expression) state throw) #t)))
+      (else (error 'badop "The operator is not known, or type mismatch")))))
 
 

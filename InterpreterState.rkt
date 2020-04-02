@@ -18,8 +18,9 @@
     (cond
       ((null? expression) state)
       ((is-atom expression) state)
-      ((eq? (operator expression) 'return) (return
-                                            (value (left-op expression) state)))
+      ((eq? (operator expression) 'return) (if (eq? (car (left-op expression)) 'funcall)
+                                               (return (eval-function-call (left-op expression) state break continue return throw))
+                                               (return (value (left-op expression) state return))))
       ((eq? (operator expression) 'var) (declare-state expression state))
       ((eq? (operator expression) '=) (assignment-state
                                        expression state break continue return throw))
@@ -29,7 +30,7 @@
                                         expression state break continue return throw))
       ((eq? (operator expression) 'break) (break state))
       ((eq? (operator expression) 'throw) (throw
-                                           (value (left-op expression) state) state))
+                                           (value (left-op expression) state return) state))
       ((eq? (operator expression) 'try) (try-state
                                          expression state break continue return throw))
       ((eq? (operator expression) 'continue) (continue state))
@@ -40,7 +41,7 @@
       ((eq? (operator expression) 'function) (if (eq? (cadr expression) 'main)
                                                  (return (eval-function-call expression state break continue return throw))
                                                  (function-definition-state expression state)))
-      ((eq? (operator expression) 'funcall) (return (eval-function-call expression state break continue return throw)))
+      ((eq? (operator expression) 'funcall) (eval-function-call expression state break continue return throw))
       (else (error "Unexpected expression")))))
 
 
@@ -102,7 +103,7 @@
       ((and (null? formal) (null? (car actual))) init-layer)
       ((or (null? formal) (null? (car actual))) (error 'mismatched_Arguments "Incorrect amount of arugments encountered"))
       (else (bind-to-layer (car formal) (box
-                                         (value (car actual) state))
+                                         (value (car actual) state return))
                            (add-params-layer (cdr formal)
                                              (cdr actual)
                                              state break continue return throw))))))
@@ -127,7 +128,7 @@
     (cond
       ((is-declared (left-op expression) (var-names state)) (error 'redefined_variable "variable is redefined"))
       ((= (num-operands expression) 2) (add-variable (left-op expression)
-                                                     (value (right-op expression) state)
+                                                     (value (right-op expression) state '())
                                                      state))
       (else (add-variable (left-op expression) 'uninitialized state)))))
 
@@ -145,7 +146,7 @@
     (cond
       ((null? current-state) (error 'undeclared_variable "Variable used before declared")) 
       ((is-declared (left-op expression) (var-names current-state)) (set-variable (left-op expression)
-                                                                                  (value (right-op expression) full-state)
+                                                                                  (value (right-op expression) full-state return)
                                                                                   current-state))
       (else (push-state-layer (state-top-layer current-state)
                               (assignment-state-helper expression (remove-state-layer current-state)
@@ -163,7 +164,7 @@
 ;; can create a single new break continuation for the entire while loop
 (define while-state-helper
   (lambda (expression state break continue return throw)
-    (if (value (left-op expression) state)
+    (if (value (left-op expression) state return)
         (while-state-helper expression
                      (call/cc (lambda (new-continue)
                                 (update-state (right-op expression)
@@ -180,7 +181,7 @@
 (define if-state
   (lambda (expression state break continue return throw)
     (cond
-      ((value (left-op expression) state) (update-state (right-op expression)
+      ((value (left-op expression) state return) (update-state (right-op expression)
                                                         state break continue
                                                         return throw))
       ((eq? (num-operands expression) 3) (update-state (operand 3 expression)
@@ -211,7 +212,7 @@
 (define catch-continuation
   (lambda (try catch-block catch-error state break continue return new-throw old-throw)
     (block-state try state init-layer break continue return
-                 (lambda (value throw-state)
+                 (lambda (value throw-state return)
                    (new-throw
                     (block-state catch-block
                                  throw-state

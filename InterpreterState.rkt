@@ -89,6 +89,7 @@
       (else (cons (car declaration) (create-function-closure (cdr declaration) state))))))
 
 ;; Creates the correct environment for a function given the current state
+;; num-layers is the number of layers that should be in the environment for the function
 (define create-function-environment
   (lambda (num-layers)
     (lambda (state)
@@ -122,12 +123,12 @@
 (define eval-function-call
   (lambda (expression state throw)
     (let* ((closure (lookup-value (cadr expression) state))
-           (outer-env ((caddr closure) state))
-           (new-state (cons (add-params-layer (car closure) (cddr expression) state throw)
-                            outer-env)))
+           (new-state (cons
+                       (add-params-layer (closure-formal-params closure) (cddr expression) state throw)
+                       ((closure-environment-creator closure) state))))
       (call/cc
        (lambda (new-return)
-         (interpret-statement-list (cadr closure) new-state
+         (interpret-statement-list (closure-function-body closure) new-state
                                             (lambda (v) (error "Error: Invalid break encountered."))
                                             (lambda (v) ("Error: Invalid continue encountered."))
                                             new-return

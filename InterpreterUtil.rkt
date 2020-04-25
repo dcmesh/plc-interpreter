@@ -31,7 +31,9 @@
 (provide closure-formal-params)
 (provide closure-function-body)
 
-
+(provide class-name)
+(provide class-superclass)
+(provide class-methods)
 
 ;;;;---------------------------------------------------------------------------------------
 ;;;; Utility functions that will be needed in many files
@@ -233,3 +235,12 @@
 (define lookup-value
   (lambda (var state)
     (unbox (get-box-state var state))))
+
+
+;;; ------------------- Utility Functions for Classes ----------------
+
+
+(define class-name car)
+(define class-superclass cadr)
+(define class-methods cddr)
+(define closure-class cadr)

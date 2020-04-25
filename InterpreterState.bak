@@ -4,7 +4,6 @@
 (provide declare-state)
 (provide function-definition-state)
 (provide eval-function-call)
-(provide class-definition-state)
 (require "InterpreterUtil.rkt")
 
 
@@ -39,7 +38,6 @@
                                            (cdr expression)
                                            state init-layer
                                            break continue return throw))
-      ((eq? (operator expression) 'class) (class-definition-state expression state))
       ((eq? (operator expression) 'function) (function-definition-state expression state))
       ((eq? (operator expression) 'funcall) (begin
                                               (eval-function-call expression state throw))
@@ -139,25 +137,9 @@
 
 
 ;;; -------------------- This section deals with class closure ---------------------------
-(define class-definition-state
-  (lambda (expression state)
-    (add-variable (left-op expression) (create-class-closure (cddr expression) state) state)))
-
 (define create-class-closure
-  (lambda (declaration state)
-    (cond
-      ((null? declaration) (list (create-class-environment (length state))))
-      ((eq? (car declaration) '()) (cons (car declaration) (create-class-closure (cdr declaration) state)))
-      ((eq? (operator (car declaration)) 'function) (cons (car declaration) (create-class-closure (cdr declaration) (function-definition-state (cadr declaration) state))))
-      ((eq? (operator (car declaration)) 'var)      (cons (car declaration) (create-class-closure (cdr declaration) (declare-state (cadr declaration) state (lambda (v) error "Uncaught Exception")))))
-      (else                                         (cons (car declaration) (create-class-closure (cdr declaration) state))))))
+  (lambda (
 
-(define create-class-environment
-  (lambda (num-layers)
-    (lambda (state)
-      (if (eq? (length state) num-layers)
-          state
-          ((create-class-environment num-layers) (remove-state-layer state))))))
 
 ;;; -------------------- This section deals with general state updates --------------------
 

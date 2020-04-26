@@ -137,27 +137,33 @@
                                             throw))))))
 
 
-
 ;;; -------------------- This section deals with class closure ---------------------------
 (define class-definition-state
   (lambda (expression state)
-    (add-variable (left-op expression) (create-class-closure (cddr expression) state) state)))
+    (add-variable (left-op expression) (create-class-closure (car (cdddr expression)) (init-class-closure (caddr expression))) state)))
 
 (define create-class-closure
-  (lambda (declaration state)
+  (lambda (declaration closure)
     (cond
-      ((null? declaration) (list (create-class-environment (length state))))
-      ((eq? (car declaration) '()) (cons (car declaration) (create-class-closure (cdr declaration) state)))
-      ((eq? (operator (car declaration)) 'function) (cons (car declaration) (create-class-closure (cdr declaration) (function-definition-state (cadr declaration) state))))
-      ((eq? (operator (car declaration)) 'var)      (cons (car declaration) (create-class-closure (cdr declaration) (declare-state (cadr declaration) state (lambda (v) error "Uncaught Exception")))))
-      (else                                         (cons (car declaration) (create-class-closure (cdr declaration) state))))))
+      ((null? declaration) closure)
+      ((or (eq? (operator (car declaration)) 'function) (eq? (operator (car declaration)) 'static-function))
+       (create-class-closure
+        (cdr declaration)
+        (set-class-closure
+         (class-superclass closure)
+         (class-field-names closure)
+         (add-method (car declaration) (class-methods closure)))))
+      ((eq? (operator (car declaration)) 'var) (create-class-closure (cdr declaration)
+                                                                     (set-class-closure
+                                                                      (class-superclass closure)
+                                                                      (cons (left-op (car declaration)) (class-field-names closure))
+                                                                      (class-methods closure))))
+      (else (error "Unexpected expression in class declaration")))))
 
-(define create-class-environment
-  (lambda (num-layers)
-    (lambda (state)
-      (if (eq? (length state) num-layers)
-          state
-          ((create-class-environment num-layers) (remove-state-layer state))))))
+(define add-method
+  (lambda (declaration method-layer)
+    (car (function-definition-state declaration (list method-layer)))))
+
 
 ;;; -------------------- This section deals with general state updates --------------------
 

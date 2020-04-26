@@ -31,9 +31,11 @@
 (provide closure-formal-params)
 (provide closure-function-body)
 
-(provide class-name)
+(provide class-field-names)
 (provide class-superclass)
 (provide class-methods)
+(provide init-class-closure)
+(provide set-class-closure)
 
 ;;;;---------------------------------------------------------------------------------------
 ;;;; Utility functions that will be needed in many files
@@ -240,7 +242,14 @@
 ;;; ------------------- Utility Functions for Classes ----------------
 
 
-(define class-name car)
-(define class-superclass cadr)
-(define class-methods cddr)
-(define closure-class cadr)
+(define class-superclass car)
+(define class-field-names cadr)
+(define class-methods caddr)
+
+(define init-class-closure
+  (lambda (superclass)
+    (list superclass '() init-layer)))
+
+(define set-class-closure
+  (lambda (superclass fields methods)
+    (list superclass fields methods)))

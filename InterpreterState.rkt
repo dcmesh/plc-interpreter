@@ -123,7 +123,7 @@
       ((eq? (car formal) 'this) (bind-to-layer (car formal) (box next-instance) (add-params-layer (cdr formal) actual state throw type instance next-instance)))
       ((or (null? formal) (null? actual)) (error 'mismatched_Arguments "Incorrect amount of arguments encountered"))
       (else (bind-to-layer (car formal) (box
-                                         (value (car actual) state throw type instance next-instance))
+                                         (value (car actual) state throw type instance))
                            (add-params-layer (cdr formal)
                                              (cdr actual)
                                              state throw  type instance next-instance))))))
@@ -165,6 +165,7 @@
 
 
 ;;; -------------------- This section deals with class closure ---------------------------
+
 (define class-definition-state
   (lambda (expression state)
     (add-variable (left-op expression) (create-class-closure (car (cdddr expression)) (init-class-closure (caddr expression)) (left-op expression)) state)))
@@ -178,20 +179,46 @@
                              (set-class-closure
                               (class-superclass closure)
                               (class-field-names closure)
-                              (add-method (car declaration) (class-methods closure) class-name))
+                              (add-method (car declaration) (class-methods closure) class-name)
+                              (class-init-fields closure))
                              class-name))
       ((eq? (operator (car declaration)) 'var)
        (create-class-closure (cdr declaration)
                              (set-class-closure
                               (class-superclass closure)
                               (cons (left-op (car declaration)) (class-field-names closure))
-                              (class-methods closure))
+                              (class-methods closure)
+                              (cons (right-op (car declaration)) (class-init-fields closure)))
                              class-name))
       (else (error "Unexpected expression in class declaration")))))
 
 (define add-method
   (lambda (declaration method-layer class-name)
     (car (function-definition-state declaration (list method-layer) class-name))))
+
+;;; -------------------- This section deals with helper functions for fields --------------
+
+(define lookup-field
+  (lambda (name class instance)
+    (lookup-field-helper name (class-field-names class) (instance-values instance))))
+
+(define lookup-field-helper
+  (lambda (name class-names instance-fields)
+    (cond
+      ((or (null? class-names) (null? instance-fields)) (error "Field does not exist"))
+      ((eq? name (car class-names)) (unbox (car instance-fields)))
+      (else (lookup-field-helper name (cdr class-names) (cdr instance-fields))))))
+
+(define update-field
+  (lambda (name next-value class instance)
+    (update-field-helper name next-value (class-field-names class) (instance-values instance))))
+
+(define update-field-helper
+  (lambda (name next-value class-names instance-fields)
+    (cond
+      ((or (null? class-names) (null? instance-fields)) (error "Field does not exist"))
+      ((eq? name (car class-names)) (set-box! (car instance-fields) next-value))
+      (else (update-field-helper name (cdr class-names) (cdr instance-fields))))))
 
 
 ;;; -------------------- This section deals with general state updates --------------------
@@ -212,20 +239,30 @@
 ;; There will be an error if the variable in the assignment statement has not been declared yet.
 (define assignment-state
   (lambda (expression state break continue return throw type instance)
-    (assignment-state-helper expression state state break continue return throw type instance)))
+    (if (list? (left-op expression))
+        (assignment-dot-helper expression (lookup-value (left-op (left-op expression)) state) state break continue return throw type instance)
+        (assignment-state-helper expression state state break continue return throw type instance))))
 
 ;; This helper function keeps the full state from when assignment-state was called
 ;; so that it can be used in the value function
 (define assignment-state-helper
   (lambda (expression current-state full-state break continue return throw type instance)
     (cond
-      ((null? current-state) (error 'undeclared_variable "Variable used before declared")) 
+      ((null? current-state) (update-field (left-op expression) (value (right-op expression) full-state throw type instance) type instance)) 
       ((is-declared (left-op expression) (var-names current-state)) (set-variable (left-op expression)
                                                                                   (value (right-op expression) full-state throw type instance)
                                                                                   current-state))
       (else (push-state-layer (state-top-layer current-state)
                               (assignment-state-helper expression (remove-state-layer current-state)
                                                        full-state break continue return throw type instance))))))
+
+(define assignment-dot-helper
+  (lambda (expression expression-instance state break continue return throw type instance)
+    (update-field (right-op (left-op expression))
+                  (value (right-op expression)
+                         state throw type instance)
+                  (lookup-value (instance-type expression-instance) state)
+                  expression-instance)))
 
 ;; Takes an expression and a state, and if the left operand of the expression is true,
 ;; and recurse on the updated state after the right operand has been evaluated
@@ -340,6 +377,7 @@
       ((not (pair? expression)) (variable-value expression state type instance))
       ((eq? (operator expression) 'funcall) (eval-function-call expression state throw type instance))
       ((eq? (operator expression) 'new) (class-instance-value expression state type instance))
+      ((eq? (operator expression) 'dot) (dot-value expression state type instance))
       ((eq? (num-operands expression) 1) (expr-one-op-val expression state throw type instance))
       (else (expr-two-op-val expression state throw type instance)))))
 
@@ -348,17 +386,25 @@
 (define variable-value
   (lambda (name state type instance)
     (cond
-      ((null? state) (error 'undeclared_variable "variable has not been declared")) ; Variable is undeclared if var-names is null
+      ((null? state) (lookup-field name type instance)) ; If variable isn't found check if it's a field in the current class
       ((null? (var-names state)) (variable-value name (remove-state-layer state)))
       ((eq? name (car (var-names state)))
        (if (eq? (unbox (car (var-values state))) 'uninitialized)
            (error 'uninitialized_variable "variable has not been initialized before use") ; Check if variable has been initialized before reeturning
            (unbox (car (var-values state)))))
-      (else (variable-value name (pop-state-value state))))))
+      (else (variable-value name (pop-state-value state) type instance)))))
 
 (define class-instance-value
   (lambda (expression state type instance)
-    (list (left-op expression) '())))
+    (list (left-op expression) (initialize-fields (class-init-fields (lookup-value (left-op expression) state)) '()))))
+
+(define dot-value
+  (lambda (expression state type instance)
+    (field-value (right-op expression) (lookup-value (left-op expression) state) state)))
+
+(define field-value
+  (lambda (field-name instance state)
+    (lookup-field field-name (lookup-value (instance-type instance) state) instance)))
 
 ;; The value of an operation that has only one operand
 ;; If the expression does not have a numerical variable the result will

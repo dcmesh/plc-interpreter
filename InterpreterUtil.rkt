@@ -35,10 +35,13 @@
 (provide class-field-names)
 (provide class-superclass)
 (provide class-methods)
+(provide class-init-fields)
 (provide lookup-method)
 (provide init-class-closure)
 (provide set-class-closure)
 (provide instance-type)
+(provide instance-values)
+(provide initialize-fields)
 
 ;;;;---------------------------------------------------------------------------------------
 ;;;; Utility functions that will be needed in many files
@@ -247,14 +250,15 @@
 (define class-superclass car)
 (define class-field-names cadr)
 (define class-methods caddr)
+(define class-init-fields cadddr)
 
 (define init-class-closure
   (lambda (superclass)
-    (list superclass '() init-layer)))
+    (list superclass '() init-layer '())))
 
 (define set-class-closure
-  (lambda (superclass fields methods)
-    (list superclass fields methods)))
+  (lambda (superclass fields methods init)
+    (list superclass fields methods init)))
 
 ;; lookup a variable in a layer
 (define lookup-method
@@ -267,3 +271,9 @@
 ;;; ------------------- Utility Functions for Class Instances ----------------
 (define instance-type car)
 (define instance-values cadr)
+
+(define initialize-fields
+  (lambda (init-fields current-fields)
+    (cond
+      ((null? init-fields) current-fields)
+      (else (initialize-fields (cdr init-fields) (cons (box (car init-fields)) current-fields))))))

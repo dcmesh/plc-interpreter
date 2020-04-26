@@ -120,8 +120,8 @@
   (lambda (formal actual state throw type instance next-instance)
     (cond
       ((and (null? formal) (null? actual)) init-layer)
+      ((eq? (car formal) 'this) (bind-to-layer (car formal) (box next-instance) (add-params-layer (cdr formal) actual state throw type instance next-instance)))
       ((or (null? formal) (null? actual)) (error 'mismatched_Arguments "Incorrect amount of arguments encountered"))
-      ((eq? (car formal) 'this) (bind-to-layer (car formal) next-instance) (add-params-layer (cdr formal) (cdr actual) state throw type instance next-instance))
       (else (bind-to-layer (car formal) (box
                                          (value (car actual) state throw type instance next-instance))
                            (add-params-layer (cdr formal)
@@ -129,6 +129,12 @@
                                              state throw  type instance next-instance))))))
 
 (define eval-instance
+  (lambda (instance)
+    (if (> (length instance) 2)
+        'None
+        instance)))
+
+(define lookup-instance
   (lambda (expression state)
     (if (eq? (operator expression) 'dot)
         (lookup-value (left-op expression) state)
@@ -136,15 +142,15 @@
 
 (define lookup-class
   (lambda (expression state class-instance)
-    (if (> (length class-instance) 2)
-        class-instance
-        (lookup-var-in-state (instance-type class-instance) state))))
+    (if (eq? class-instance 'None)
+        (lookup-value (left-op (left-op expression)) state)
+        (lookup-value (instance-type class-instance) state))))
         
 
 ;; Evaluates a function call value in the given expression                                        
 (define eval-function-call
   (lambda (expression state throw type instance)
-    (let* ((class-instance (eval-instance (left-op expression) state))
+    (let* ((class-instance (eval-instance (lookup-instance (left-op expression) state)))
            (closure (lookup-method (right-op (left-op expression)) (class-methods (lookup-class expression state class-instance))))
            (new-state (cons
                        (add-params-layer (closure-formal-params closure) (cddr expression) state throw type instance class-instance)

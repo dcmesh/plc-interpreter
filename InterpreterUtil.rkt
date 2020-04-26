@@ -34,6 +34,7 @@
 (provide class-field-names)
 (provide class-superclass)
 (provide class-methods)
+(provide lookup-method)
 (provide init-class-closure)
 (provide set-class-closure)
 
@@ -251,6 +252,14 @@
 (define set-class-closure
   (lambda (superclass fields methods)
     (list superclass fields methods)))
+
+;; lookup a variable in a layer
+(define lookup-method
+  (lambda (name method-list)
+    (cond
+      ((empty-layer? method-list) 'undeclared)
+      ((eq? name (first-var method-list)) (unbox (first-value method-list)))
+      (else (lookup-method name (remaining-bindings method-list))))))
 
 ;;; ------------------- Utility Functions for Class Instances ----------------
 (define instance-type car)

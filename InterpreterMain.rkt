@@ -17,8 +17,10 @@
     (sanitize-return
      (eval-function-call
       '(funcall main)
-      (list (class-methods (lookup-value (string->symbol class-name) (run-first-pass (parser file) init-state))))
-      (lambda (v) (error "Error: Uncaught Exception"))))))
+      (run-first-pass (parser file) init-state)
+      (lambda (v) (error "Error: Uncaught Exception"))
+      (string->symbol class-name)
+      'None))))
 
 ;; First pass to find all function declarations in a program
 (define run-first-pass

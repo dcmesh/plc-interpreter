@@ -13,28 +13,18 @@
 ;; Function to interpret a program contained in a file
 ;; This will call the parser and initialize the state as well as continuations
 (define interpret
-  (lambda (file)
+  (lambda (file class-name)
     (sanitize-return
      (eval-function-call
       '(funcall main)
-      (run-first-pass (parser file) init-state)
+      (list (class-methods (lookup-value (string->symbol class-name) (run-first-pass (parser file) init-state))))
       (lambda (v) (error "Error: Uncaught Exception"))))))
 
 ;; First pass to find all function declarations in a program
-
-
 (define run-first-pass
   (lambda (program state)
     (cond
       ((null? program) state)
-      ((eq? (operator (car program)) 'var) (run-first-pass
-                                            (cdr program)
-                                            (declare-state (car program) state
-                                                           (lambda (v)
-                                                             (error "Error: Uncaught Exception")))))
-      ((eq? (operator (car program)) 'function) (run-first-pass
-                                                 (cdr program)
-                                                 (function-definition-state (car program) state)))
       ((eq? (operator (car program)) 'class) (run-first-pass
                                               (cdr program)
                                               (class-definition-state (car program) state)))

@@ -309,6 +309,7 @@
       ((eq? 'false expression) #f)
       ((not (pair? expression)) (variable-value expression state))
       ((eq? (operator expression) 'funcall) (eval-function-call expression state throw))
+      ((eq? (operator expression) 'new) (class-instance-value expression state))
       ((eq? (num-operands expression) 1) (expr-one-op-val expression state throw))
       (else (expr-two-op-val expression state throw)))))
 
@@ -324,6 +325,10 @@
            (error 'uninitialized_variable "variable has not been initialized before use") ; Check if variable has been initialized before reeturning
            (unbox (car (var-values state)))))
       (else (variable-value name (pop-state-value state))))))
+
+(define class-instance-value
+  (lambda (expression state)
+    (list (left-op expression) '())))
 
 ;; The value of an operation that has only one operand
 ;; If the expression does not have a numerical variable the result will

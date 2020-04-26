@@ -240,8 +240,6 @@
 
 
 ;;; ------------------- Utility Functions for Classes ----------------
-
-
 (define class-superclass car)
 (define class-field-names cadr)
 (define class-methods caddr)
@@ -253,3 +251,7 @@
 (define set-class-closure
   (lambda (superclass fields methods)
     (list superclass fields methods)))
+
+;;; ------------------- Utility Functions for Class Instances ----------------
+(define instance-type car)
+(define instance-values cadr)

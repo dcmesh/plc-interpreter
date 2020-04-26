@@ -117,22 +117,37 @@
 
 ;; creates a new layer with the provided params
 (define add-params-layer
-  (lambda (formal actual state throw type instance)
+  (lambda (formal actual state throw type instance next-instance)
     (cond
       ((and (null? formal) (null? actual)) init-layer)
       ((or (null? formal) (null? actual)) (error 'mismatched_Arguments "Incorrect amount of arguments encountered"))
+      ((eq? (car formal) 'this) (bind-to-layer (car formal) next-instance) (add-params-layer (cdr formal) (cdr actual) state throw type instance next-instance))
       (else (bind-to-layer (car formal) (box
-                                         (value (car actual) state throw type instance))
+                                         (value (car actual) state throw type instance next-instance))
                            (add-params-layer (cdr formal)
                                              (cdr actual)
-                                             state throw  type instance))))))
+                                             state throw  type instance next-instance))))))
+
+(define eval-instance
+  (lambda (expression state)
+    (if (eq? (operator expression) 'dot)
+        (lookup-value (left-op expression) state)
+        expression)))
+
+(define lookup-class
+  (lambda (expression state class-instance)
+    (if (> (length class-instance) 2)
+        class-instance
+        (lookup-var-in-state (instance-type class-instance) state))))
+        
 
 ;; Evaluates a function call value in the given expression                                        
 (define eval-function-call
   (lambda (expression state throw type instance)
-    (let* ((closure (lookup-method (left-op expression) (class-methods (lookup-value type state))))
+    (let* ((class-instance (eval-instance (left-op expression) state))
+           (closure (lookup-method (right-op (left-op expression)) (class-methods (lookup-class expression state class-instance))))
            (new-state (cons
-                       (add-params-layer (closure-formal-params closure) (cddr expression) state throw type instance)
+                       (add-params-layer (closure-formal-params closure) (cddr expression) state throw type instance class-instance)
                        ((closure-environment-creator closure) state))))
       (call/cc
        (lambda (new-return)
@@ -140,7 +155,7 @@
                                             (lambda (v) (error "Error: Invalid break encountered."))
                                             (lambda (v) ("Error: Invalid continue encountered."))
                                             new-return
-                                            throw type instance))))))
+                                            throw (closure-compile-type closure) class-instance))))))
 
 
 ;;; -------------------- This section deals with class closure ---------------------------

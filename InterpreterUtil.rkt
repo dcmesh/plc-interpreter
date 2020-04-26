@@ -30,6 +30,7 @@
 (provide closure-environment-creator)
 (provide closure-formal-params)
 (provide closure-function-body)
+(provide closure-compile-type)
 
 (provide class-field-names)
 (provide class-superclass)
@@ -37,6 +38,7 @@
 (provide lookup-method)
 (provide init-class-closure)
 (provide set-class-closure)
+(provide instance-type)
 
 ;;;;---------------------------------------------------------------------------------------
 ;;;; Utility functions that will be needed in many files
@@ -183,6 +185,7 @@
 (define closure-environment-creator caddr)
 (define closure-function-body cadr)
 (define closure-formal-params car)
+(define closure-compile-type cadddr)
 
 ;; checks if a given layer is empty
 (define empty-layer?

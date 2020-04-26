@@ -16,7 +16,7 @@
   (lambda (file class-name)
     (sanitize-return
      (eval-function-call
-      '(funcall main)
+      `(funcall (dot ,(string->symbol class-name) main))
       (run-first-pass (parser file) init-state)
       (lambda (v) (error "Error: Uncaught Exception"))
       (string->symbol class-name)

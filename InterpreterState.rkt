@@ -234,7 +234,7 @@
 (define assignment-state
   (lambda (expression state break continue return throw type instance)
     (if (list? (left-op expression))
-        (assignment-dot-helper expression (lookup-value (left-op (left-op expression)) state) state break continue return throw type instance)
+        (assignment-dot-helper expression (value (left-op (left-op expression)) state throw type instance) state break continue return throw type instance)
         (assignment-state-helper expression state state break continue return throw type instance))))
 
 ;; This helper function keeps the full state from when assignment-state was called

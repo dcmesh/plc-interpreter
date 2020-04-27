@@ -135,10 +135,11 @@
         instance)))
 
 (define lookup-instance
-  (lambda (expression state)
-    (if (eq? (operator expression) 'dot)
-        (lookup-value (left-op expression) state)
-        expression)))
+  (lambda (expression state type instance)
+    (cond
+     ((not (list? (left-op expression))) (lookup-value (left-op expression) state))
+     ((eq? (operator (left-op expression)) 'new) (class-instance-value (left-op expression) state type instance))
+     (else (error "unexpected expression in dot operator")))))
 
 (define lookup-class
   (lambda (expression state class-instance)
@@ -150,7 +151,7 @@
 ;; Evaluates a function call value in the given expression                                        
 (define eval-function-call
   (lambda (expression state throw type instance)
-    (let* ((class-instance (eval-instance (lookup-instance (left-op expression) state)))
+    (let* ((class-instance (eval-instance (lookup-instance (left-op expression) state type instance)))
            (closure (lookup-method (right-op (left-op expression)) (class-methods (lookup-class expression state class-instance))))
            (new-state (cons
                        (add-params-layer (closure-formal-params closure) (cddr expression) state throw type instance class-instance)
@@ -400,7 +401,10 @@
 
 (define dot-value
   (lambda (expression state type instance)
-    (field-value (right-op expression) (lookup-value (left-op expression) state) state)))
+    (cond
+      ((not (list? (left-op expression))) (field-value (right-op expression) (lookup-value (left-op expression) state) state))
+      ((eq? (operator (left-op expression)) 'new) (field-value (right-op expression) (class-instance-value (left-op expression) state type instance) state))
+      (else (error "Unexpected value in dot operator")))))
 
 (define field-value
   (lambda (field-name instance state)

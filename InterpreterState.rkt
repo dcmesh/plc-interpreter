@@ -169,7 +169,10 @@
 ;; Takes a class definition and adds its closure to the state
 (define class-definition-state
   (lambda (expression state)
-    (add-variable (left-op expression) (create-class-closure (car (cdddr expression)) (init-class-closure (caddr expression)) (left-op expression)) state)))
+    (if (null? (caddr expression))
+        (add-variable (left-op expression) (create-class-closure (car (cdddr expression)) (init-class-closure (caddr expression)) (left-op expression)) state)
+        (add-variable (left-op expression) (create-class-closure (car (cdddr expression)) (init-class-closure (cadr (caddr expression))) (left-op expression)) state))))
+        
 
 ;; Create the class closure from the definition of the class
 (define create-class-closure

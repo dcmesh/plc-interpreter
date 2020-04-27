@@ -83,6 +83,7 @@
   (lambda (expression state type)
     (add-variable (left-op expression) (add-this-param expression (create-function-closure (cddr expression) state type)) state)))
 
+;; Insert the special variable this into a function closure's formal parameters
 (define add-this-param
   (lambda (expression closure)
     (if (eq? (operator expression) 'static-function)
@@ -120,7 +121,10 @@
   (lambda (formal actual state throw type instance next-instance)
     (cond
       ((and (null? formal) (null? actual)) init-layer)
-      ((eq? (car formal) 'this) (bind-to-layer (car formal) (box next-instance) (add-params-layer (cdr formal) actual state throw type instance next-instance)))
+      ((eq? (car formal) 'this) (bind-to-layer ; If the variable is this add the instance as an actual parameter
+                                 (car formal)
+                                 (box next-instance)
+                                 (add-params-layer (cdr formal) actual state throw type instance next-instance))) 
       ((or (null? formal) (null? actual)) (error 'mismatched_Arguments "Incorrect amount of arguments encountered"))
       (else (bind-to-layer (car formal) (box
                                          (value (car actual) state throw type instance))
@@ -128,12 +132,14 @@
                                              (cdr actual)
                                              state throw  type instance next-instance))))))
 
+;; Determines whether the instance found is actually an instance or a class (in the case of a static method)
 (define eval-instance
   (lambda (instance)
     (if (> (length instance) 2)
         'None
         instance)))
 
+;; Determine the class closure to look up the method body in
 (define lookup-class
   (lambda (expression state class-instance)
     (if (eq? class-instance 'None)
@@ -160,15 +166,18 @@
 
 ;;; -------------------- This section deals with class closure ---------------------------
 
+;; Takes a class definition and adds its closure to the state
 (define class-definition-state
   (lambda (expression state)
     (add-variable (left-op expression) (create-class-closure (car (cdddr expression)) (init-class-closure (caddr expression)) (left-op expression)) state)))
 
+;; Create the class closure from the definition of the class
 (define create-class-closure
   (lambda (declaration closure class-name)
     (cond
       ((null? declaration) closure)
-      ((or (eq? (operator (car declaration)) 'function) (eq? (operator (car declaration)) 'static-function))
+      ((or (eq? (operator (car declaration)) 'function)
+           (eq? (operator (car declaration)) 'static-function)) ; If is a method change add it to the methods in the closure
        (create-class-closure (cdr declaration)
                              (set-class-closure
                               (class-superclass closure)
@@ -176,7 +185,7 @@
                               (add-method (car declaration) (class-methods closure) class-name)
                               (class-init-fields closure))
                              class-name))
-      ((eq? (operator (car declaration)) 'var)
+      ((eq? (operator (car declaration)) 'var) ; If it is a variable add it to the field names and initial field values
        (create-class-closure (cdr declaration)
                              (set-class-closure
                               (class-superclass closure)
@@ -186,12 +195,14 @@
                              class-name))
       (else (error "Unexpected expression in class declaration")))))
 
+; Takes the methods section of a class closure and adds a new method to it
 (define add-method
   (lambda (declaration method-layer class-name)
     (car (function-definition-state declaration (list method-layer) class-name))))
 
 ;;; -------------------- This section deals with helper functions for fields --------------
 
+;; Given a class closure and an instance closure find the value of field name
 (define lookup-field
   (lambda (name class instance)
     (lookup-field-helper name (class-field-names class) (instance-values instance))))
@@ -203,6 +214,7 @@
       ((eq? name (car class-names)) (unbox (car instance-fields)))
       (else (lookup-field-helper name (cdr class-names) (cdr instance-fields))))))
 
+;; Give a class closure and an instance closure update the value of field with name to next-value
 (define update-field
   (lambda (name next-value class instance)
     (update-field-helper name next-value (class-field-names class) (instance-values instance))))
@@ -250,6 +262,8 @@
                               (assignment-state-helper expression (remove-state-layer current-state)
                                                        full-state break continue return throw type instance))))))
 
+;; Determines assignment when the left operand is a dot expression
+;; Requires updating the value of an instance's field
 (define assignment-dot-helper
   (lambda (expression expression-instance state break continue return throw type instance)
     (update-field (right-op (left-op expression))
@@ -388,14 +402,18 @@
            (unbox (car (var-values state)))))
       (else (variable-value name (pop-state-value state) type instance)))))
 
+;; Determine the value of a new operator
+;; Creates a class instance closure
 (define class-instance-value
   (lambda (expression state type instance)
     (list (left-op expression) (initialize-fields (class-init-fields (lookup-value (left-op expression) state)) '()))))
 
+;; Determine the value of a dot expression
 (define dot-value
   (lambda (expression state throw type instance)
     (field-value (right-op expression) (value (left-op expression) state throw type instance) state)))
 
+;; Determine the value of a field with field-name
 (define field-value
   (lambda (field-name instance state)
     (lookup-field field-name (lookup-value (instance-type instance) state) instance)))

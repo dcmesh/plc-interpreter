@@ -252,10 +252,12 @@
 (define class-methods caddr)
 (define class-init-fields cadddr)
 
+;; Create the initial closure of a class definition without any add values
 (define init-class-closure
   (lambda (superclass)
     (list superclass '() init-layer '())))
 
+;; Set the class closure to a new series of values
 (define set-class-closure
   (lambda (superclass fields methods init)
     (list superclass fields methods init)))
@@ -272,6 +274,8 @@
 (define instance-type car)
 (define instance-values cadr)
 
+;; Take the initialized values of fields and the current fields in an instance closure
+;; And updates the instance closure fields to be the initialized values
 (define initialize-fields
   (lambda (init-fields current-fields)
     (cond

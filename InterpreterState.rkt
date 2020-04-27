@@ -134,13 +134,6 @@
         'None
         instance)))
 
-(define lookup-instance
-  (lambda (expression state type instance)
-    (cond
-     ((not (list? (left-op expression))) (lookup-value (left-op expression) state))
-     ((eq? (operator (left-op expression)) 'new) (class-instance-value (left-op expression) state type instance))
-     (else (error "unexpected expression in dot operator")))))
-
 (define lookup-class
   (lambda (expression state class-instance)
     (if (eq? class-instance 'None)
@@ -151,7 +144,7 @@
 ;; Evaluates a function call value in the given expression                                        
 (define eval-function-call
   (lambda (expression state throw type instance)
-    (let* ((class-instance (eval-instance (lookup-instance (left-op expression) state type instance)))
+    (let* ((class-instance (eval-instance (value (left-op (left-op expression)) state throw type instance)))
            (closure (lookup-method (right-op (left-op expression)) (class-methods (lookup-class expression state class-instance))))
            (new-state (cons
                        (add-params-layer (closure-formal-params closure) (cddr expression) state throw type instance class-instance)
@@ -378,7 +371,7 @@
       ((not (pair? expression)) (variable-value expression state type instance))
       ((eq? (operator expression) 'funcall) (eval-function-call expression state throw type instance))
       ((eq? (operator expression) 'new) (class-instance-value expression state type instance))
-      ((eq? (operator expression) 'dot) (dot-value expression state type instance))
+      ((eq? (operator expression) 'dot) (dot-value expression state throw type instance))
       ((eq? (num-operands expression) 1) (expr-one-op-val expression state throw type instance))
       (else (expr-two-op-val expression state throw type instance)))))
 
@@ -400,11 +393,8 @@
     (list (left-op expression) (initialize-fields (class-init-fields (lookup-value (left-op expression) state)) '()))))
 
 (define dot-value
-  (lambda (expression state type instance)
-    (cond
-      ((not (list? (left-op expression))) (field-value (right-op expression) (lookup-value (left-op expression) state) state))
-      ((eq? (operator (left-op expression)) 'new) (field-value (right-op expression) (class-instance-value (left-op expression) state type instance) state))
-      (else (error "Unexpected value in dot operator")))))
+  (lambda (expression state throw type instance)
+    (field-value (right-op expression) (value (left-op expression) state throw type instance) state)))
 
 (define field-value
   (lambda (field-name instance state)

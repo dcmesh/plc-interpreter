@@ -379,7 +379,8 @@
                     (block-state catch-block
                                  state
                                  (init-layer-value catch-error value)
-                                 break continue return old-throw type instance))))))
+                                 break continue return old-throw type instance)))
+                 type instance)))
 
 
 ;;; -------------------- This section deals with blocks --------------------

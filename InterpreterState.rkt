@@ -420,14 +420,18 @@
 ;; The variable must have been initialized previously or the function will result in an error
 (define variable-value
   (lambda (name state type instance)
+    (variable-value-helper name state type instance state)))
+
+(define variable-value-helper
+  (lambda (name state type instance full-state)
     (cond
-      ((null? state) (lookup-field name type instance)) ; If variable isn't found check if it's a field in the current class
-      ((null? (var-names state)) (variable-value name (remove-state-layer state) type instance))
+      ((null? state) (lookup-field name (lookup-value type full-state) instance)) ; If variable isn't found check if it's a field in the current class
+      ((null? (var-names state)) (variable-value-helper name (remove-state-layer state) type instance full-state))
       ((eq? name (car (var-names state)))
        (if (eq? (unbox (car (var-values state))) 'uninitialized)
            (error 'uninitialized_variable "variable has not been initialized before use") ; Check if variable has been initialized before reeturning
            (unbox (car (var-values state)))))
-      (else (variable-value name (pop-state-value state) type instance)))))
+      (else (variable-value-helper name (pop-state-value state) type instance full-state)))))
 
 ;; Determine the value of a new operator
 ;; Creates a class instance closure

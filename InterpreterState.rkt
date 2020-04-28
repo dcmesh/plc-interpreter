@@ -197,7 +197,7 @@
                               (add-method (car declaration) (class-methods closure) class-name)
                               (class-init-fields closure))
                              class-name state))
-      ((eq? (operator (car declaration)) 'var) ; If it is a variable add it to the field names and initial field values
+      ((and (eq? (operator (car declaration)) 'var) (> (length (car declaration)) 2)) ; If it is a variable add it to the field names and initial field values
        (create-class-closure (cdr declaration)
                              (set-class-closure
                               (class-superclass closure)
@@ -205,7 +205,14 @@
                               (class-methods closure)
                               (cons (right-op (car declaration)) (class-init-fields closure)))
                              class-name state))
-      (else (error "Unexpected expression in class declaration")))))
+      (else
+       (create-class-closure (cdr declaration)
+                             (set-class-closure
+                              (class-superclass closure)
+                              (cons (left-op (car declaration)) (class-field-names closure))
+                              (class-methods closure)
+                              (cons 'unitialized (class-init-fields closure)))
+                             class-name state)))))
 
 ;; Appends the superclass's field and method closures to the closure of the instance
 (define append-super-defs

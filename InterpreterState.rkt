@@ -144,21 +144,27 @@
   (lambda (expression state class-instance type)
     (cond
       ((eq? class-instance 'None) (lookup-value (left-op (left-op expression)) state))
+      ((not (list? (left-op expression))) (lookup-value (instance-type class-instance) state))
       ((eq? (left-op (left-op expression)) 'super) (lookup-value (class-superclass (lookup-value type state)) state))
       (else (lookup-value (instance-type class-instance) state)))))
 
 (define lookup-instance
   (lambda (expression state throw type instance)
-    (if (eq? (left-op (left-op expression)) 'super)
+    (if (or (not (list? (left-op expression))) (eq? (left-op (left-op expression)) 'super))
         instance
         (value (left-op (left-op expression)) state throw type instance))))
         
+(define get-method-name
+  (lambda (expression)
+    (if (list? (left-op expression))
+        (right-op (left-op expression))
+        (left-op expression))))
 
 ;; Evaluates a function call value in the given expression                                        
 (define eval-function-call
   (lambda (expression state throw type instance)
     (let* ((class-instance (eval-instance (lookup-instance expression state throw type instance)))
-           (closure (lookup-method (right-op (left-op expression)) (class-methods (lookup-class expression state class-instance type))))
+           (closure (lookup-method (get-method-name expression) (class-methods (lookup-class expression state class-instance type))))
            (new-state (cons
                        (add-params-layer (closure-formal-params closure) (cddr expression) state throw type instance class-instance)
                        ((closure-environment-creator closure) state))))
@@ -288,7 +294,7 @@
 (define assignment-state-helper
   (lambda (expression current-state full-state break continue return throw type instance)
     (cond
-      ((null? current-state) (update-field (left-op expression) (value (right-op expression) full-state throw type instance) type instance)) 
+      ((null? current-state) (update-field (left-op expression) (value (right-op expression) full-state throw type instance) (lookup-value type full-state) instance)) 
       ((is-declared (left-op expression) (var-names current-state)) (set-variable (left-op expression)
                                                                                   (value (right-op expression) full-state throw type instance)
                                                                                   current-state))

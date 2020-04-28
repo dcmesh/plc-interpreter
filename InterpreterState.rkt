@@ -264,7 +264,7 @@
     (cond
       ((or (null? class-names) (null? instance-fields)) (error "Field does not exist"))
       ((eq? name (car class-names)) (set-box! (car instance-fields) next-value))
-      (else (update-field-helper name (cdr class-names) (cdr instance-fields))))))
+      (else (update-field-helper name next-value (cdr class-names) (cdr instance-fields))))))
 
 
 ;;; -------------------- This section deals with general state updates --------------------

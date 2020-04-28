@@ -144,14 +144,20 @@
   (lambda (expression state class-instance type)
     (cond
       ((eq? class-instance 'None) (lookup-value (left-op (left-op expression)) state))
-      ((eq? (left-op (left-op expression)) 'super) type)
+      ((eq? (left-op (left-op expression)) 'super) (lookup-value (class-superclass (lookup-value type state)) state))
       (else (lookup-value (instance-type class-instance) state)))))
+
+(define lookup-instance
+  (lambda (expression state throw type instance)
+    (if (eq? (left-op (left-op expression)) 'super)
+        instance
+        (value (left-op (left-op expression)) state throw type instance))))
         
 
 ;; Evaluates a function call value in the given expression                                        
 (define eval-function-call
   (lambda (expression state throw type instance)
-    (let* ((class-instance (eval-instance (value (left-op (left-op expression)) state throw type instance)))
+    (let* ((class-instance (eval-instance (lookup-instance expression state throw type instance)))
            (closure (lookup-method (right-op (left-op expression)) (class-methods (lookup-class expression state class-instance type))))
            (new-state (cons
                        (add-params-layer (closure-formal-params closure) (cddr expression) state throw type instance class-instance)
@@ -432,12 +438,12 @@
 ;; Determine the value of a dot expression
 (define dot-value
   (lambda (expression state throw type instance)
-    (field-value (right-op expression) (value (left-op expression) state throw type instance) state)))
+    (field-value (right-op expression) (value (left-op expression) state throw type instance) state type)))
 
 ;; Determine the value of a field with field-name
 (define field-value
-  (lambda (field-name instance state)
-    (lookup-field field-name (lookup-value (instance-type instance) state) instance)))
+  (lambda (field-name instance state type)
+    (lookup-field field-name (lookup-value type state) instance)))
 
 ;; The value of an operation that has only one operand
 ;; If the expression does not have a numerical variable the result will

@@ -141,17 +141,18 @@
 
 ;; Determine the class closure to look up the method body in
 (define lookup-class
-  (lambda (expression state class-instance)
-    (if (eq? class-instance 'None)
-        (lookup-value (left-op (left-op expression)) state)
-        (lookup-value (instance-type class-instance) state))))
+  (lambda (expression state class-instance type)
+    (cond
+      ((eq? class-instance 'None) (lookup-value (left-op (left-op expression)) state))
+      ((eq? (left-op (left-op expression)) 'super) type)
+      (else (lookup-value (instance-type class-instance) state)))))
         
 
 ;; Evaluates a function call value in the given expression                                        
 (define eval-function-call
   (lambda (expression state throw type instance)
     (let* ((class-instance (eval-instance (value (left-op (left-op expression)) state throw type instance)))
-           (closure (lookup-method (right-op (left-op expression)) (class-methods (lookup-class expression state class-instance))))
+           (closure (lookup-method (right-op (left-op expression)) (class-methods (lookup-class expression state class-instance type))))
            (new-state (cons
                        (add-params-layer (closure-formal-params closure) (cddr expression) state throw type instance class-instance)
                        ((closure-environment-creator closure) state))))
@@ -170,15 +171,17 @@
 (define class-definition-state
   (lambda (expression state)
     (if (null? (caddr expression))
-        (add-variable (left-op expression) (create-class-closure (car (cdddr expression)) (init-class-closure (caddr expression)) (left-op expression)) state)
-        (add-variable (left-op expression) (create-class-closure (car (cdddr expression)) (init-class-closure (cadr (caddr expression))) (left-op expression)) state))))
+        (add-variable (left-op expression) (create-class-closure (car (cdddr expression)) (init-class-closure (caddr expression)) (left-op expression) state) state)
+        (add-variable (left-op expression) (create-class-closure (car (cdddr expression)) (init-class-closure (cadr (caddr expression))) (left-op expression) state) state))))
         
+
 
 ;; Create the class closure from the definition of the class
 (define create-class-closure
-  (lambda (declaration closure class-name)
+  (lambda (declaration closure class-name state)
     (cond
-      ((null? declaration) closure)
+      ((and (null? declaration) (null? (class-superclass closure))) closure)
+      ((null? declaration) (append-super-defs closure (lookup-value (class-superclass closure) state)))
       ((or (eq? (operator (car declaration)) 'function)
            (eq? (operator (car declaration)) 'static-function)) ; If is a method change add it to the methods in the closure
        (create-class-closure (cdr declaration)
@@ -187,7 +190,7 @@
                               (class-field-names closure)
                               (add-method (car declaration) (class-methods closure) class-name)
                               (class-init-fields closure))
-                             class-name))
+                             class-name state))
       ((eq? (operator (car declaration)) 'var) ; If it is a variable add it to the field names and initial field values
        (create-class-closure (cdr declaration)
                              (set-class-closure
@@ -195,8 +198,23 @@
                               (cons (left-op (car declaration)) (class-field-names closure))
                               (class-methods closure)
                               (cons (right-op (car declaration)) (class-init-fields closure)))
-                             class-name))
+                             class-name state))
       (else (error "Unexpected expression in class declaration")))))
+
+;; Appends the superclass's field and method closures to the closure of the instance
+(define append-super-defs
+  (lambda (closure super-class)
+    (set-class-closure (class-superclass closure)
+                       (append (class-field-names closure) (class-field-names super-class))
+                       (combine-super-methods closure super-class)
+                       (append (class-init-fields closure) (class-init-fields super-class)))))
+
+(define combine-super-methods
+  (lambda (closure super-closure)
+    (list (append (car (class-methods closure))
+                  (car (class-methods super-closure)))
+          (append (cadr (class-methods closure))
+                  (cadr (class-methods super-closure))))))
 
 ; Takes the methods section of a class closure and adds a new method to it
 (define add-method
@@ -208,7 +226,7 @@
 ;; Given a class closure and an instance closure find the value of field name
 (define lookup-field
   (lambda (name class instance)
-    (lookup-field-helper name (class-field-names class) (instance-values instance))))
+    (lookup-field-helper name (class-field-names class) (reverse (instance-values instance)))))
 
 (define lookup-field-helper
   (lambda (name class-names instance-fields)
@@ -220,7 +238,7 @@
 ;; Give a class closure and an instance closure update the value of field with name to next-value
 (define update-field
   (lambda (name next-value class instance)
-    (update-field-helper name next-value (class-field-names class) (instance-values instance))))
+    (update-field-helper name next-value (class-field-names class) (reverse (instance-values instance)))))
 
 (define update-field-helper
   (lambda (name next-value class-names instance-fields)
@@ -398,7 +416,7 @@
   (lambda (name state type instance)
     (cond
       ((null? state) (lookup-field name type instance)) ; If variable isn't found check if it's a field in the current class
-      ((null? (var-names state)) (variable-value name (remove-state-layer state)))
+      ((null? (var-names state)) (variable-value name (remove-state-layer state) type instance))
       ((eq? name (car (var-names state)))
        (if (eq? (unbox (car (var-values state))) 'uninitialized)
            (error 'uninitialized_variable "variable has not been initialized before use") ; Check if variable has been initialized before reeturning
@@ -409,7 +427,7 @@
 ;; Creates a class instance closure
 (define class-instance-value
   (lambda (expression state type instance)
-    (list (left-op expression) (initialize-fields (class-init-fields (lookup-value (left-op expression) state)) '()))))
+    (list (left-op expression) (reverse (initialize-fields (class-init-fields (lookup-value (left-op expression) state)) '())))))
 
 ;; Determine the value of a dot expression
 (define dot-value

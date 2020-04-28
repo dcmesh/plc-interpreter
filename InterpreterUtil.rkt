@@ -43,6 +43,7 @@
 (provide instance-values)
 (provide initialize-fields)
 
+
 ;;;;---------------------------------------------------------------------------------------
 ;;;; Utility functions that will be needed in many files
 ;;;; This includes functions used for abstraction and
@@ -273,7 +274,7 @@
 ;;; ------------------- Utility Functions for Class Instances ----------------
 (define instance-type car)
 (define instance-values cadr)
-
+           
 ;; Take the initialized values of fields and the current fields in an instance closure
 ;; And updates the instance closure fields to be the initialized values
 (define initialize-fields
